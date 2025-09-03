@@ -1,4 +1,4 @@
-name: llmgraph
+name: Emulate
 channels:
   - https://mirrors.aliyun.com/anaconda/pkgs/free/
   - https://mirrors.aliyun.com/anaconda/pkgs/main/
@@ -155,4 +155,4 @@ dependencies:
     - wsproto==1.2.0
     - yarl==1.9.4
     - zipp==3.18.1
-prefix: /mnt2/jijiarui/miniconda3/envs/llmgraph
+prefix: /mnt2/jijiarui/miniconda3/envs/Emulate

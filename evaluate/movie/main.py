@@ -19,7 +19,7 @@ from evaluate.visualize.movie import (create_movie_visualize,
                              plot_degree_figures,
                              plot_nc,
                              plot_err)
-from LLMGraph.utils.io import readinfo, writeinfo
+from Emulate.utils.io import readinfo, writeinfo
 import json
 
 
@@ -38,7 +38,7 @@ parser.add_argument('--config',
 parser.add_argument('--task', 
                     type=str, 
                     default="movielens", 
-                    help='The task setting for the LLMGraph')  # 添加参数
+                    help='The task setting for the Emulate')  # 添加参数
 
 
 
@@ -120,11 +120,11 @@ def get_projected_graph(G_generated:nx.DiGraph, bipartite_label =0):
 
 if __name__ == "__main__":
     args = parser.parse_args()  # 解析参数
-    save_root = "LLMGraph/tasks/{task}/configs/{config}/evaluate".format(
+    save_root = "Emulate/tasks/{task}/configs/{config}/evaluate".format(
         task = args.task,
         config = args.config
     )
-    model_root = "LLMGraph/tasks/{task}/configs/{config}/data/model".format(
+    model_root = "Emulate/tasks/{task}/configs/{config}/data/model".format(
         task = args.task,
         config = args.config
     )

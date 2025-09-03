@@ -24,7 +24,7 @@ def plot_outdegree_cc(G:nx.DiGraph,
     else:
         out_degrees = dict(G.degree())
    
-    from LLMGraph.utils.io import writeinfo, readinfo
+    from Emulate.utils.io import writeinfo, readinfo
     if os.path.exists(os.path.join(save_dir, f"{graph_name}_outdegree_cc.json")):
         plt_data =  readinfo(os.path.join(save_dir, f"{graph_name}_outdegree_cc.json"))
         outdegree = plt_data["out_degree"]
@@ -83,6 +83,6 @@ def plot_outdegree_cc(G:nx.DiGraph,
 
 
 
-plot_outdegree_cc(nx.DiGraph(),"LLMGraph/tasks/tweets/configs/llama_test_1e6/evaluate/20240418",
+plot_outdegree_cc(nx.DiGraph(),"Emulate/tasks/tweets/configs/llama_test_1e6/evaluate/20240418",
                   "follow"
                   )

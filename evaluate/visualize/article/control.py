@@ -8,7 +8,7 @@ fm.fontManager.addfont(font_path)
 plt.rcParams['font.family'] = font_prop.get_name()
 plt.rcParams['font.sans-serif'] = [font_prop.get_name()]
 import os
-from LLMGraph.utils.io import readinfo, writeinfo
+from Emulate.utils.io import readinfo, writeinfo
 
 def plot_nc(nc,
     nse,

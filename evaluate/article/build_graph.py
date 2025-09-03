@@ -1,5 +1,5 @@
 import networkx as nx
-from LLMGraph.utils.io import readinfo,writeinfo
+from Emulate.utils.io import readinfo,writeinfo
 import os
 import json 
 import re
@@ -208,7 +208,7 @@ def build_relevance_array(article_meta_data:dict):
     from langchain_community.document_loaders.text import TextLoader
     from sklearn.metrics.pairwise import cosine_similarity
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    from LLMGraph.loader.article import DirectoryArticleLoader
+    from Emulate.loader.article import DirectoryArticleLoader
     text_loader_kwargs={'autodetect_encoding': True}
     article_loader = DirectoryArticleLoader(
                          article_meta_data = article_meta_data,

@@ -113,7 +113,7 @@ def plot_pk_k(G:nx.DiGraph,
 
 def print():
     import json
-    with open("LLMGraph/tasks/llm_agent/data/article_meta_info.json",'r',encoding = 'utf-8') as f:
+    with open("Emulate/tasks/llm_agent/data/article_meta_info.json",'r',encoding = 'utf-8') as f:
         data_list = json.load(f)
     cites = [ value["cited"] for value in data_list.values()]
     

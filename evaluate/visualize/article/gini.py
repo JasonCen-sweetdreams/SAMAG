@@ -11,7 +11,7 @@ plt.rcParams['font.family'] = font_prop.get_name()
 plt.rcParams['font.sans-serif'] = [font_prop.get_name()]
 import seaborn as sns
 import networkx as nx
-from LLMGraph.utils.io import readinfo,writeinfo
+from Emulate.utils.io import readinfo,writeinfo
 # 计算基尼系数
 def gini_coefficient(x):
     n = len(x)

@@ -3,7 +3,7 @@ import os
 # huggingface tokenizers parallelism
 os.environ["TOKENIZERS_PARALLELISM"] = "false"
 import shutil
-from LLMGraph.executor import Executor
+from Emulate.executor import Executor
 
 import time
 parser = argparse.ArgumentParser(description='graph_llm_builder')  # 创建解析器
@@ -18,11 +18,11 @@ parser.add_argument('--config',
 parser.add_argument('--task', 
                     type=str, 
                     default="citeseer", 
-                    help='The task setting for the LLMGraph')  # 添加参数
+                    help='The task setting for the Emulate')  # 添加参数
 
 parser.add_argument("--api_path",
                     type=str,
-                    default="LLMGraph/llms/api.json",
+                    default="Emulate/llms/api.json",
                     help="The default path of apis json.")
 
 parser.add_argument("--build",
@@ -52,7 +52,7 @@ parser.add_argument("--eval",
 
 parser.add_argument('--launcher_save_path', 
                     type=str, 
-                    default="LLMGraph/llms/launcher_info.json", 
+                    default="Emulate/llms/launcher_info.json", 
                     help="The path to save launcher info")
 
 args = parser.parse_args()  # 解析参数
@@ -65,16 +65,16 @@ if __name__ == "__main__":
     import os
 
     agentscope.init(
-        project="llmgraph",
+        project="Emulate",
         name="main",
-        model_configs="LLMGraph/llms/default_model_configs.json",
+        model_configs="Emulate/llms/default_model_configs.json",
         use_monitor=False,
         save_code=False,
         save_api_invoke=False,
     )
     
     if args["user_input"] != "":
-        from LLMGraph.initialization import get_arg_config
+        from Emulate.initialization import get_arg_config
         args = get_arg_config(args)
     
     if args["build"]:
@@ -82,16 +82,16 @@ if __name__ == "__main__":
         executor.run()
         
     if args["save"]:
-        args["launcher_save_path"] = "LLMGraph/llms/launcher_info_none.json"
+        args["launcher_save_path"] = "Emulate/llms/launcher_info_none.json"
         executor = Executor.from_task(args)
         executor.save()
     
     if args["test"]:
-        args["launcher_save_path"] = "LLMGraph/llms/launcher_info_none.json"
+        args["launcher_save_path"] = "Emulate/llms/launcher_info_none.json"
         executor = Executor.from_task(args)
         executor.test()
 
     if args["eval"]:
-        args["launcher_save_path"] = "LLMGraph/llms/launcher_info_none.json"
+        args["launcher_save_path"] = "Emulate/llms/launcher_info_none.json"
         executor = Executor.from_task(args)
         executor.eval()

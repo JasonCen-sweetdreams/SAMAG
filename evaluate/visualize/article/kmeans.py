@@ -182,7 +182,7 @@ def plt_topic_given(save_dir:str,
     from langchain_community.document_loaders.text import TextLoader
     from sklearn.metrics.pairwise import cosine_similarity
     embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    from LLMGraph.loader.article import DirectoryArticleLoader
+    from Emulate.loader.article import DirectoryArticleLoader
     from langchain_core.prompts import PromptTemplate
 
     text_loader_kwargs={'autodetect_encoding': True}
@@ -339,13 +339,13 @@ if __name__ =="__main__":
     text_loader_kwargs={'autodetect_encoding': True}
     
 
-    article_loader = DirectoryLoader("LLMGraph/tasks/llm_agent/configs/test_config_5_article_1500/data/generated_article", 
+    article_loader = DirectoryLoader("Emulate/tasks/llm_agent/configs/test_config_5_article_1500/data/generated_article", 
                          glob="*.txt", 
                          loader_cls=TextLoader,
                          show_progress=True,
                          loader_kwargs=text_loader_kwargs)
     generated_docs = article_loader.load()
-    origin_docs = DirectoryLoader("LLMGraph/tasks/llm_agent/data/article", 
+    origin_docs = DirectoryLoader("Emulate/tasks/llm_agent/data/article", 
                          glob="*.txt", 
                          loader_cls=TextLoader,
                          show_progress=True,

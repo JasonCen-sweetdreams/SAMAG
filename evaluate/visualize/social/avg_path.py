@@ -35,7 +35,7 @@ def get_fraction_of_graph(graph, fraction):
 def plot_avg_path(G:nx.DiGraph,
                       save_dir:str,
                         graph_name:str):
-    from LLMGraph.utils.io import writeinfo, readinfo
+    from Emulate.utils.io import writeinfo, readinfo
     # 指定要分析的图部分（fraction）
     # fractions = np.linspace(0.01, 1.0, 10)
     fractions =[
@@ -101,6 +101,6 @@ if __name__ =="__main__":
     G.add_edges_from(edges)
     
     plot_avg_path(G,
-                  "LLMGraph/tasks/tweets/configs/llama_test_1e6/evaluate/20240418",
+                  "Emulate/tasks/tweets/configs/llama_test_1e6/evaluate/20240418",
                   "follow")
     

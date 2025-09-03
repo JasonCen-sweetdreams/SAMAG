@@ -50,14 +50,14 @@ def calculate_gcc_size(DG:nx.DiGraph,
         "relative_size":  relative_sizes,
         "diameter": diameters
     }
-    from LLMGraph.utils.io import writeinfo
+    from Emulate.utils.io import writeinfo
     writeinfo(os.path.join(save_dir, f"{graph_name}_proportion_cc.json"),info=plt_data)
 
     plt_data ={
         "relative_size":  user_relative_sizes,
         "diameter": user_diameters
     }
-    from LLMGraph.utils.io import writeinfo
+    from Emulate.utils.io import writeinfo
     writeinfo(os.path.join(save_dir, f"user_projection_proportion_cc.json"),info=plt_data)
 
 

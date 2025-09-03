@@ -2,15 +2,15 @@ import argparse
 import os
 from agentscope.agents.rpc_agent import RpcAgentServerLauncher
 import agentscope
-from LLMGraph.wrapper.agent_group import GroupDiscussAgent, SocialGroupAgent, MovieGroupAgent
-from LLMGraph.agent.article import ArticleAgent, ArticleManagerAgent
-from LLMGraph.agent.movie import MovieAgent, MovieManagerAgent
-from LLMGraph.agent.social import SocialAgent,SocialManagerAgent
+from Emulate.wrapper.agent_group import GroupDiscussAgent, SocialGroupAgent, MovieGroupAgent
+from Emulate.agent.article import ArticleAgent, ArticleManagerAgent
+from Emulate.agent.movie import MovieAgent, MovieManagerAgent
+from Emulate.agent.social import SocialAgent,SocialManagerAgent
 
-from LLMGraph.wrapper import (ArticleAgentWrapper,
+from Emulate.wrapper import (ArticleAgentWrapper,
                               MovieAgentWrapper,
                               SocialAgentWrapper)
-from LLMGraph.utils.io import writeinfo
+from Emulate.utils.io import writeinfo
 import random
 import multiprocessing
 multiprocessing.set_start_method('spawn', force=True)
@@ -31,7 +31,7 @@ parser.add_argument('--to_dist',
 
 parser.add_argument('--launcher_save_path', 
                     type=str, 
-                    default="LLMGraph/llms/launcher_info.json", 
+                    default="Emulate/llms/launcher_info.json", 
                     help="The path to save launcher info")
 
 parser.add_argument('--hosts', 
@@ -45,9 +45,9 @@ parser.add_argument('--hosts',
 def setup_server(server_launcher:RpcAgentServerLauncher) -> None:
     """Setup rpc server for participant agent"""
     agentscope.init(
-        project="llmgraph",
+        project="Emulate",
         name="server",
-        model_configs="LLMGraph/llms/default_model_configs.json",
+        model_configs="Emulate/llms/default_model_configs.json",
         use_monitor=False,
         save_code=False,
         save_api_invoke=False,
@@ -105,9 +105,9 @@ if __name__ == "__main__":
     args = parser.parse_args()  # 解析参数
     # setup 所有的server都要init一遍吗？
     # agentscope.init(
-    #     project="llmgraph",
+    #     project="Emulate",
     #     name="server",
-    #     model_configs="LLMGraph/llms/default_model_configs.json",
+    #     model_configs="Emulate/llms/default_model_configs.json",
     #     use_monitor=False,
     #     save_code=False,
     #     save_api_invoke=False,

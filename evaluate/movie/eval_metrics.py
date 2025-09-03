@@ -201,7 +201,7 @@ def plot_pk_k(G:nx.DiGraph,
 
 def print():
     import json
-    with open("LLMGraph/tasks/llm_agent/data/article_meta_info.json",'r',encoding = 'utf-8') as f:
+    with open("Emulate/tasks/llm_agent/data/article_meta_info.json",'r',encoding = 'utf-8') as f:
         data_list = json.load(f)
     cites = [ value["cited"] for value in data_list.values()]
     
@@ -319,7 +319,7 @@ def plot_k_t(G:nx.DiGraph,
     
     
 def plot_k_t_llm_agent():
-    articles = readinfo("LLMGraph/tasks/llm_agent/data/article_meta_info.json")
+    articles = readinfo("Emulate/tasks/llm_agent/data/article_meta_info.json")
     # 按照node的time进行排序
 
     nodes = sorted(articles.items(), key=cmp_to_key(compare_items))
@@ -339,7 +339,7 @@ def plot_k_t_llm_agent():
     plt.xticks(times,times,rotation = 45)
     plt.grid(True, which="both", ls="--")
     plt.show()
-    plt.savefig(os.path.join("LLMGraph/tasks/llm_agent/data",f"llmagent_t_k.pdf"))
+    plt.savefig(os.path.join("Emulate/tasks/llm_agent/data",f"llmagent_t_k.pdf"))
     plt.clf()
     
     

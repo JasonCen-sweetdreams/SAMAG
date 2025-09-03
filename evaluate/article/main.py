@@ -13,7 +13,7 @@ from evaluate.article.build_graph import (build_author_citation_graph,
                                             build_co_citation_graph,
                                             build_co_authorship_network)
 from evaluate.matrix import calculate_directed_graph_matrix
-from LLMGraph.utils.io import readinfo, writeinfo
+from Emulate.utils.io import readinfo, writeinfo
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser(description='graph_llm_builder')  # 创建解析器
@@ -26,7 +26,7 @@ parser.add_argument('--config',
 parser.add_argument('--task', 
                     type=str, 
                     default="cora", 
-                    help='The task setting for the LLMGraph')  # 添加参数
+                    help='The task setting for the Emulate')  # 添加参数
 
 
 parser.add_argument('--xmin', 
@@ -134,7 +134,7 @@ def load_test_dataset(val_dataset):
     
     if val_dataset == "citeseer":
         DG = nx.DiGraph()
-        path = "LLMGraph/tasks/citeseer/data/article_meta_info.pt"
+        path = "Emulate/tasks/citeseer/data/article_meta_info.pt"
         articles = readinfo(path)
         article_idx_title_map = {}
         for idx,title in enumerate(articles.keys()):
@@ -154,7 +154,7 @@ def load_test_dataset(val_dataset):
     
     if val_dataset == "llm_agent":
         DG = nx.DiGraph()
-        path = "LLMGraph/tasks/llm_agent/data/article_meta_info.pt"
+        path = "Emulate/tasks/llm_agent/data/article_meta_info.pt"
         articles = readinfo(path)
         article_idx_title_map = {}
         for idx,title in enumerate(articles.keys()):
@@ -180,7 +180,7 @@ def load_test_dataset(val_dataset):
 
 
 def get_data(task,config):
-    data_path = "LLMGraph/tasks/{task}/configs/{config}/data"
+    data_path = "Emulate/tasks/{task}/configs/{config}/data"
     article_meta_info = readinfo(os.path.join(data_path.format(task=task,config=config),
                                               "article_meta_info.pt"))
     author_info = readinfo(os.path.join(data_path.format(task=task,config=config),
@@ -275,17 +275,17 @@ def save_degree_list(G:nx.DiGraph,
 
 if __name__ == "__main__":
     args = parser.parse_args()  # 解析参数
-    save_root = "LLMGraph/tasks/{task}/configs/{config}/evaluate".format(
+    save_root = "Emulate/tasks/{task}/configs/{config}/evaluate".format(
         task = args.task,
         config = args.config
     )
 
-    generated_article_dir = "LLMGraph/tasks/{task}/configs/{config}/data/generated_article".format(
+    generated_article_dir = "Emulate/tasks/{task}/configs/{config}/data/generated_article".format(
         task = args.task,
         config = args.config
     )
 
-    article_meta_info_path = "LLMGraph/tasks/{task}/configs/{config}/data/article_meta_info.pt".format(
+    article_meta_info_path = "Emulate/tasks/{task}/configs/{config}/data/article_meta_info.pt".format(
         task = args.task,
         config = args.config
     )

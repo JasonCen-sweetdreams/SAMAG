@@ -18,7 +18,7 @@ from evaluate.visualize import plot_utils
 import pandas as pd
 import json
 from PIL import Image
-from LLMGraph.utils.io import readinfo, writeinfo
+from Emulate.utils.io import readinfo, writeinfo
 from evaluate.visualize.social import (plot_degree_figures, 
                                        plot_indegree_outdegree,
                                        plot_shrinking_diameter,
@@ -44,7 +44,7 @@ parser.add_argument('--config',
 parser.add_argument('--task', 
                     type=str, 
                     default="tweets", 
-                    help='The task setting for the LLMGraph')  # 添加参数
+                    help='The task setting for the Emulate')  # 添加参数
 
 parser.add_argument('--g_type',
                     type=str,
@@ -645,16 +645,16 @@ def plot_power_law_distribution(graph: nx.DiGraph, title: str, save_path: str = 
 
 if __name__ == "__main__":
     args = parser.parse_args()  # 解析参数
-    save_root = "LLMGraph/tasks/{task}/configs/{config}/evaluate".format(
+    save_root = "Emulate/tasks/{task}/configs/{config}/evaluate".format(
         task = args.task,
         config = args.config
     )
-    vis_save_root = "LLMGraph/tasks/{task}/configs/{config}/visualize".format(
+    vis_save_root = "Emulate/tasks/{task}/configs/{config}/visualize".format(
         task = args.task,
         config = args.config
     )
   
-    data_root = "LLMGraph/tasks/{task}/configs/{config}/data/generated/data".format(
+    data_root = "Emulate/tasks/{task}/configs/{config}/data/generated/data".format(
         task = args.task,
         config = args.config
     )

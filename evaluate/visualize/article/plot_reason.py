@@ -1,4 +1,4 @@
-from LLMGraph.utils.io import readinfo,writeinfo
+from Emulate.utils.io import readinfo,writeinfo
 import os
 import networkx as nx
 
@@ -39,10 +39,10 @@ def calculate_reason():
     country_map = readinfo("evaluate/article/country.json")
     # llms = ["gpt3.5","gpt4", "qwen2", "vllm"]
     llm_config_map = {
-       "gpt3.5":"LLMGraph/tasks/llm_agent_6/configs/search_shuffle_base_gpt3.5",
-        "gpt4":"LLMGraph/tasks/llm_agent_6/configs/search_shuffle_base_gpt4-mini",
-        "vllm":"LLMGraph/tasks/llm_agent_6/configs/search_shuffle_base_vllm",
-        # "qwen2":"LLMGraph/tasks/llm_agent_4/configs/search_shuffle_base_qwen2"
+       "gpt3.5":"Emulate/tasks/llm_agent_6/configs/search_shuffle_base_gpt3.5",
+        "gpt4":"Emulate/tasks/llm_agent_6/configs/search_shuffle_base_gpt4-mini",
+        "vllm":"Emulate/tasks/llm_agent_6/configs/search_shuffle_base_vllm",
+        # "qwen2":"Emulate/tasks/llm_agent_4/configs/search_shuffle_base_qwen2"
     }
     llm_reasons = {}
     for llm, config_path in llm_config_map.items():

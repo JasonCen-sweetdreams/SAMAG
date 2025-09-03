@@ -45,7 +45,7 @@ def create_article_visualize_nx(G_true, G_generated, root_dir):
 
 
 def create_article_visualize(G:nx.Graph,
-                           save_path:str = "LLMGraph/visualize/article/graph.pdf"):
+                           save_path:str = "Emulate/visualize/article/graph.pdf"):
     
     ### filter degree =0 in DG
     # 创建一个新的图H，包含G中度数大于0的节点

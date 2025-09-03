@@ -49,7 +49,7 @@ def plot_relative_size(matrix_dir:str,
             "out_degree": dates,
             "relative_size":  relative_sizes
         }
-        from LLMGraph.utils.io import writeinfo
+        from Emulate.utils.io import writeinfo
         writeinfo(os.path.join(save_dir, f"{matrix_name}_proportion_cc.json"),info=plt_data)
     
     save_path = os.path.join(save_dir, 

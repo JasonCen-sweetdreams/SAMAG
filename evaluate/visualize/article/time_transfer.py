@@ -98,7 +98,7 @@ def plot_avg_path(G:nx.DiGraph,
         "out_degree": fractions,
         "avg_path_length":  avg_path_lengths
     }
-    from LLMGraph.utils.io import writeinfo
+    from Emulate.utils.io import writeinfo
     writeinfo(os.path.join(save_dir, f"{graph_name}_outdegree_avg_path.json"),
               info=plt_data)
     # 绘制折线图
@@ -154,7 +154,7 @@ def plot_outdegree_cc(G:nx.DiGraph,
         "out_degree": outdegree,
         "avg_clustering": avg_clustering
     }
-    from LLMGraph.utils.io import writeinfo
+    from Emulate.utils.io import writeinfo
     writeinfo(os.path.join(save_dir, f"{graph_name}_outdegree_cc.json"),
               info=plt_data)
 

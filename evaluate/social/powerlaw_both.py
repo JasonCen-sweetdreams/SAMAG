@@ -20,7 +20,7 @@ from evaluate.visualize import plot_utils
 import pandas as pd
 import json
 from PIL import Image
-from LLMGraph.utils.io import readinfo, writeinfo
+from Emulate.utils.io import readinfo, writeinfo
 from evaluate.visualize.social import (plot_degree_figures, 
                                        plot_indegree_outdegree,
                                        plot_shrinking_diameter,
@@ -227,7 +227,7 @@ if __name__ == "__main__":
         print("--- 正在加载 Citation Network ---")
         citation_graph = None
         try:
-            citation_data_path = "LLMGraph/tasks/citeseer/configs/big/data/article_meta_info.pt"
+            citation_data_path = "Emulate/tasks/citeseer/configs/big/data/article_meta_info.pt"
             article_meta_data = torch.load(citation_data_path)
             citation_graph = build_citation_graph(article_meta_data)
             print(f"Citation Network 加载成功: {len(citation_graph.nodes())} 个节点, {len(citation_graph.edges())} 条边。")
@@ -244,7 +244,7 @@ if __name__ == "__main__":
             # 根据你的脚本，设置 task 和 config
             task = "tweets"
             config = "big" # 或者你使用的其他 config, e.g., "big"
-            action_data_root = f"LLMGraph/tasks/{task}/configs/{config}/data/generated/data"
+            action_data_root = f"Emulate/tasks/{task}/configs/{config}/data/generated/data"
             
             # 从 build_sn_graphs 生成器中获取所有图快照
             graph_generator = build_sn_graphs(action_data_root)

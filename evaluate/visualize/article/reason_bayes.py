@@ -39,7 +39,7 @@ config ="search_shuffle_base_gpt3.5_ver1"
 config = "search_shuffle_base_gpt3.5"
 
 task ="llm_agent"
-evaluate_root =f"LLMGraph/tasks/{task}/configs/{config}/evaluate"
+evaluate_root =f"Emulate/tasks/{task}/configs/{config}/evaluate"
 
 df_citation = pd.read_csv(os.path.join(evaluate_root,"impact_citation_bayes.csv"),
                           index_col=0)
