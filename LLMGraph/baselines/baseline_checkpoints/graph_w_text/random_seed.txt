@@ -1,0 +1,10 @@
+# BiGG.L  bigg_gen
+0.0038 1755598123279
+# GRAN.L  gran_gen
+-0.0322 1755598104434
+# BwR.L  bwr_graphrnn
+-0.0177 1755598079758
+# GraphMaker.L  graphmaker_sync
+0.0083 1755598056222
+# L-PPGN.L  l_ppgn
+0.0004 1755598033030

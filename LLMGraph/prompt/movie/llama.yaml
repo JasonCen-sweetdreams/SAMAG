@@ -1,0 +1,238 @@
+choose_genre:  &choose_genre |-
+  
+  {role_description}
+  
+  Here's your memory of rating movies: 
+  {memory}
+  
+  {movie_description}
+
+  {human_instruction}
+  
+  - If you made up your choice, respond in this format:
+  Thought: (Your views on these movie genres)
+  Action: Choose
+  Action Input: (A list of movie genres)
+  
+  - If you chose none of them, respond in this format:
+  Thought: (Your views on these movie genres)
+  Action: Giveup
+  Action Input: I choose none of these options.
+  
+
+  Respond:
+  {agent_scratchpad}
+
+
+rate_movie_old:  &rate_movie_old |-
+  
+  {role_description}
+  
+  And you have rated these movies, so you may avoid giving repeated ratings:
+  {watched_movie_names}
+
+
+  {movie_description}
+
+
+
+  Here's your memory of rating movies: 
+  {memory}
+
+ 
+  You should give your rating scores to at least {min_rate} movies, at most {max_rate} movies. 
+  You should give a rating score of this movie, from 0 to 5; just make a rating score based on your personal preference or other reasons.
+  
+  {human_instruction}
+  
+  You are interested in these movie genres, and you may give higher scores of these genres:
+  {interested_genres}
+
+  And you should respond in this format, return a list of your movie ratings:
+  [
+    {{
+      "movie": "(str, Movie_name)", 
+      "thought": "(str, Your reason for making this rating score, you gice this score based on personal preference or other reasons)",
+      "rating":(integer,rating_score)
+    }}
+    ...
+    (repeat this for at least {min_rate} movies, at most {max_rate} movies, try to rate as much movies as possible!)
+  ]
+
+  Respond:
+  {agent_scratchpad}
+
+watch_plan: &watch_plan |-
+  {role_description}.
+
+  You need to make a plan to {task}, {requirement}
+  
+  Respond in this format, give me only one list:
+  [( (number of movies watched online), (number of movies watched in the cinema))] 
+  
+  Now Respond:
+  {agent_scratchpad}
+
+watch_movie_batch: &watch_movie_batch |-
+  {role_description}.
+  
+  Here's some information about the available movies:
+  {movie_description}
+  
+  Here's your memory of rating movies: 
+  {memory}
+  
+  {instruction}
+
+  {agent_scratchpad}
+
+movie_genre_age_instruction: &movie_genre_age_instruction |-
+  People of different ages may prefer different movie genres:
+
+  Children (Up to 12 years old):
+  animated films, family-friendly films, and fantasy movies are popular. 
+  
+  Teenagers (13 to 19 years old):
+  young adult fiction, comedies, and action/superhero movies
+  
+  Young Adults (20s to 30s):
+  romantic comedies, thrillers/horror, and dramas
+
+  Adults (40s to 60s):
+  mature dramas, historical films/biopics, and comedies with sophisticated humor
+  
+  Seniors (65 and older):
+  classic films, family dramas, and documentaries
+
+movie_genre_job_instruction: &movie_genre_job_instruction |-
+  For people with different jobs, creative professionals may be attracted to visually-striking or innovative films, 
+  while scientists and engineers may be interested in science fiction 
+  or technology-focused movies. Lawyers and crime analysts may prefer 
+  legal dramas and crime thrillers, while healthcare professionals 
+  may be drawn to medical dramas or documentaries. 
+  Business executives and financiers may enjoy movies that showcase 
+  high-stakes negotiations and corporate espionage. 
+  Teachers and educators may appreciate inspirational stories about the 
+  power of education.
+  
+  Men generally enjoy action, science fiction, thriller, horror, and war movies. 
+  Women tend to prefer romance, drama, comedy, musicals, and fantasy films.
+
+
+
+movie_rate_instruction: &movie_rate_instruction |-
+  Based on prior knowledge, people may have biases based on their gender and preferences when rating movies. 
+  They may be more inclined to give higher ratings to movies they are interested in. 
+  
+  For example, men may tend to give higher ratings to action, science fiction, thriller, horror, and war movies; 
+  While women may favor romantic, drama, comedy, musical, and fantasy movies with higher ratings.
+
+
+rate_movie: &rate_movie |-
+  {role_description}
+  
+  You have rated these movies before, so you should avoid giving repeated ratings:
+  {watched_movie_names}
+
+  Here is the information about the movie you are rating:
+  {movie_description}
+
+  Here's your memory of your past rating history: 
+  {memory}
+
+  Here are some public reviews for this movie from other viewers:
+  {existing_reviews_context}
+
+  You have just discussed this movie with your friends. Here are the key points from the discussion:
+  {discussion_context}
+  
+  Your task is to provide a rating for this single movie.
+  You should give a rating score from 0 to 5.
+  
+  Please synthesize ALL the information above—your personal preferences, the movie's details, public opinion, and your friends' discussion—to form your final, unique review. Your thought process should reflect how these different contexts influenced your rating.
+  
+  You are generally interested in these movie genres: {interested_genres}
+
+  And you should respond in this JSON format, providing a list containing just ONE movie rating:
+  [
+    {{
+      "movie": "(str, The name of the movie you are rating)", 
+      "thought": "(str, Your detailed reasoning for the rating, explaining how the public reviews and group discussion influenced your personal opinion.)",
+      "rating": (integer, your final rating score from 0 to 5)
+    }}
+  ]
+
+  Respond:
+  {agent_scratchpad}
+
+
+propose_movie: &propose_movie |-
+  You are part of a movie interest group. Your group's shared favorite genres are: {group_genres}.
+  
+  Based on your group's taste and the movies listed below, please propose ONE movie for your group to watch this week.
+  
+  Available Movies:
+  {movie_description}
+  
+  Respond in this JSON format:
+  {{
+    "thought": "I think this movie is a good choice because...",
+    "return_values": {{
+      "movie_id": <integer>,
+      "title": "Movie Title",
+      "reason": "A brief reason why this movie fits the group's taste."
+    }}
+  }}
+  
+  Respond:
+  {agent_scratchpad}
+
+discuss_movie: &discuss_movie |-
+  {role_description}
+  
+  You are discussing the movie "{movie_title}" with your friends. Here is the discussion so far:
+  {discussion_context}
+  
+  Based on the ongoing conversation and your own opinion, please provide your thoughts to continue the discussion. Keep your response concise and focused on one or two points.
+  
+  Respond in this JSON format:
+  {{
+    "thought": "I will respond to the previous point and add my own perspective.",
+    "return_values": {{
+      "speak": "Your concise discussion point goes here."
+    }}
+  }}
+
+  Respond:
+  {agent_scratchpad}
+
+select_movies: &select_movies |-
+  {role_description}
+
+  Based on your preferences and the following search results, please select 1 to 3 movies you are most interested in watching and rating.
+
+  Search Results:
+  {searched_info}
+
+  Here's your memory of rating movies to avoid re-selecting: 
+  {memory}
+
+  Respond in this JSON format, providing a list of movie objects:
+  {{
+    "thought": "I will select a few movies that match my interests from the list.",
+    "return_values": {{
+      "selected_movies": [
+        {{
+          "movie_id": <integer>,
+          "title": "Movie Title 1"
+        }},
+        {{
+          "movie_id": <integer>,
+          "title": "Movie Title 2"
+        }}
+      ]
+    }}
+  }}
+  
+  Respond:
+  {agent_scratchpad}
