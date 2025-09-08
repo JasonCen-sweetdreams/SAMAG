@@ -226,21 +226,16 @@ class SocialEnvironment(BaseEnvironment):
         i = 0
         N = len(group_pool)
         while i < N:
-        # 如果剩余不足 3 人，就把剩下的每个人单独成一组
             if N - i < 3:
                 for aid in group_pool[i:]:
                     groups.append([aid])
                 break
 
-            # 组大小
-            # size = random.randint(3, 5)
-            ### testing：固定
-            size = 3
-            # 防止越界
+            # Group size
+            size = random.randint(3, 5)
             if i + size > N:
                 size = N - i
                 if size < 3:
-                    # 不足 3，就在下一个循环把它们当成单独组
                     continue
 
             groups.append(group_pool[i:i + size])
@@ -251,10 +246,7 @@ class SocialEnvironment(BaseEnvironment):
 
         group_agents = []
         for g_id, member_list in enumerate(groups):
-            ### 并行参数
             if self.to_dist:
-                # 简单起见，可以让所有group agent都使用第一个launcher的配置
-                # 或者根据 g_id 进行轮询分配
                 launcher_arg = self.launcher_args[g_id % len(self.launcher_args)]
                 to_dist_kwargs = {
                     "to_dist": {
@@ -272,7 +264,6 @@ class SocialEnvironment(BaseEnvironment):
                     break
             if leader_idx is None:
                 leader_idx = 0
-            # 把 leader 放在第 0 位
             if leader_idx != 0:
                 wrappers[0], wrappers[leader_idx] = wrappers[leader_idx], wrappers[0]
             group_agent_name = "Group_%d" % g_id
@@ -280,7 +271,6 @@ class SocialEnvironment(BaseEnvironment):
                 name = group_agent_name,
                 agents = wrappers,
                 manager_agent = self.manager_agent,
-                ### 传分布式参数
                 **copy.deepcopy(to_dist_kwargs))
             group_agents.append(grp_agent)
 
@@ -302,7 +292,7 @@ class SocialEnvironment(BaseEnvironment):
                     all_group_results.extend(m.content or {})
             return all_group_results
         
-        return run_parallel() # 需要进行讨论的tenant
+        return run_parallel()
     
     @timed
     def collect_agent_plans(self):
@@ -391,8 +381,6 @@ class SocialEnvironment(BaseEnvironment):
         num_deleted = int(len(self.cur_agents) * \
             self.social_configs["delete_people_rate"])
         
-        print("\n" + "="*80)
-        print(f"DEBUG: update_agents() called for date: {self.time_configs['cur_time'].strftime('%Y-%m-%d')}")
         current_agent_count = len(self.cur_agents)
         add_rate = self.social_configs["add_people_rate"]
         raw_num_added = current_agent_count * add_rate
@@ -485,8 +473,6 @@ class SocialEnvironment(BaseEnvironment):
         for idx, agent_profile_info in enumerate(agent_profiles.iterrows()):
             index, agent_profile = agent_profile_info
             user_index = agent_profile["user_index"]
-            # assert agent_profile["user_index"] not in self.cur_agents.keys(),\
-            #       f"{index}, {user_index}"
             if user_index in self.cur_agents.keys():
                 continue
             if self.to_dist:
@@ -514,23 +500,18 @@ class SocialEnvironment(BaseEnvironment):
         
     @timed
     def step(self):
-        print(f"Current iter beginning at {datetime.now()}...\n", flush=True)
         if self.time_configs["people_add_delta"] > timedelta(days=0):
             # 暂时不往网络内添加agent
             self.update_agents()
         
-        print(f"Adopting llm generated plans at {datetime.now()}...\n", flush=True)
         """adopt llm generated plans"""
         agent_plans_map = self.collect_agent_plans()
-        print(f"Social at {datetime.now()}\n", flush=True)
         twitters = self.social(agent_plans_map)
         
         # update rating DB
-        print(f"Updating database at {datetime.now()}...", flush=True)
         add_num = self.update_social_manager(twitters)
         self.call_manager_agent_func("update_big_name_list").content
 
-        print(f"added {add_num} twitters for {self.time_configs['cur_time'].strftime('%Y-%m-%d')} at reality time: {datetime.now()}", flush=True)
         # update social/watcher DB and Time
         self.update_time()
         
@@ -541,20 +522,11 @@ class SocialEnvironment(BaseEnvironment):
         print(f"Adding {len(all_twitter_actions)} twitters")
         print(f"All twitters: \n{all_twitter_actions}")
         num  = 0
-        # agent_ids = [*self.sampled_agent_ids["big_name"],
-        #              *self.sampled_agent_ids["common"]
-        #              ]
-        # zipped_agent_twitters = list(zip(twitters,agent_ids))
-        
-        # for idx in range(0, len(zipped_agent_twitters), 100):
-        #     zipped_agent_twitters_sub = zipped_agent_twitters[idx:idx+100]
-        # print(f"All zipped_agent_twitters: {zipped_agent_twitters[:-3]}")
-        # print(f"total twitters length: {len(zipped_agent_twitters)}")
-        # for idx in range(0, len(zipped_agent_twitters), 100):
+
+
         for idx in range(0, len(all_twitter_actions), 100):
             sub_actions = all_twitter_actions[idx:idx + 100]
 
-            # 对当前 100 条（或不足 100 条）的子列表，先构造好一个 data_list
             data_list = []
             current_date_str = self.time_configs["cur_time"].strftime("%Y-%m-%d")
             for action_dict in sub_actions:
@@ -569,11 +541,9 @@ class SocialEnvironment(BaseEnvironment):
                         "twitters": action_dict
                     })
 
-            # 如果这一轮子批次里没人发推，则跳过
             if not data_list:
                 continue
 
-            # 一次性调用批量接口 add_tweets_batch，返回这一子批次写入数
             add_msg = self.call_manager_agent_func(
                 "add_tweets_batch",
                 kwargs={"data_list": data_list}
@@ -581,24 +551,6 @@ class SocialEnvironment(BaseEnvironment):
             sub_count = int(add_msg.content)
             num += sub_count
             print(f"  Sub-batch {idx // 100 + 1}: added {sub_count} tweets.")
-        # for idx in range(0, len(zipped_agent_twitters), 100):
-        #     zipped_agent_twitters_sub = zipped_agent_twitters[idx:idx+100]
-        #     sub_add_msgs = []
-        #     for twitters_one, agent_id in zipped_agent_twitters_sub:
-        #         # 去掉空的值
-        #         if twitters_one is None: continue
-        #         add_msg = self.call_manager_agent_func(
-        #             "add_tweets",
-        #             kwargs={
-        #                 "agent_id":agent_id,
-        #                 "cur_time":self.time_configs["cur_time"].strftime("%Y-%m-%d"),
-        #                 "twitters":twitters_one
-        #             }
-        #         )
-        #         sub_add_msgs.append(add_msg)
-        #     sub_add_num = [add_msg.content for add_msg in sub_add_msgs]
-        #     num += sum(sub_add_num)        
-        # self.call_manager_agent_func("update_docs").content
         return num
         
     
@@ -630,8 +582,6 @@ class SocialEnvironment(BaseEnvironment):
                                          kwargs={
                                             "last_added_time": time_s.strftime("%Y-%m-%d")
                                          }).content
-            # self.time_configs["cur_time"] = self.time_configs["cur_time"] - \
-            #     self.time_configs["social_time_delta"]
             
         else:
             print("--> Entering NORMAL initialization logic branch.")

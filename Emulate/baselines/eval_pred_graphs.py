@@ -1,5 +1,5 @@
 import pickle
-import torch as th
+import torch
 # import powerlaw
 
 # from pathlib import Path
@@ -23,7 +23,6 @@ def sigmoid(x):
 from tqdm import tqdm
 def generated_random_graphs(N_gen, graph_name,N_GT):    
     graph_path_map = {
-        # "llmcitationcora":"Emulate/baselines/baseline_checkpoints/data/netcraft/citation/cora/raw/article_meta_info.pt",
         "llmcitationciteseer":"Emulate/tasks/citeseer/data/article_meta_info.pt"
     }
     if graph_name not in graph_path_map.keys():return {}
@@ -60,9 +59,6 @@ def generated_random_graphs(N_gen, graph_name,N_GT):
             }
 
 def eval_citation_graphs(data_name):
-    import torch
-    
-
     graph_size_gen = 1000
     graph_size_min = 950
 
@@ -82,9 +78,9 @@ def eval_citation_graphs(data_name):
     
     pred_model_graphs = {}
     
-    path = "Emulate/baselines/baseline_checkpoints/gag_generated.pt"
+    path = "Emulate/baselines/baseline_checkpoints/samag_generated.pt"
     generated = torch.load(path)
-    pred_model_graphs["gag"] = generated[data_name][:graph_eval_len]
+    pred_model_graphs["samag"] = generated[data_name][:graph_eval_len]
    
     dataset_path = os.path.join("Emulate/baselines/baseline_checkpoints",
                      f"{data_name}.pkl")
@@ -97,13 +93,12 @@ def eval_citation_graphs(data_name):
     for model, dir in model_dir_map.items():
         path = os.path.join(dir,data_name, "pred_graphs.pt")
         try:
-            eval_file = th.load(path)
+            eval_file = torch.load(path)
         except Exception as e:
             print(e)
             continue
         pred_graphs = eval_file["pred_graphs"]
         pred_graphs = list(filter(lambda x: len(x.nodes())>graph_size_min,pred_graphs))
-        # pred_graphs = list(filter(lambda x: len(x.edges())>0,pred_graphs))
         pred_graphs = [
             nx.Graph(pred_graph.subgraph(list(pred_graph.nodes())[:graph_size_gen])) for pred_graph in pred_graphs][:graph_eval_len]
         if len(pred_graphs)==0:
@@ -121,17 +116,11 @@ def eval_citation_graphs(data_name):
     """calculate random graphs"""
     
     pred_model_graphs.update(generated_random_graphs(graph_size_gen,data_name,graph_eval_len))
-    # pred_model_graphs = {"gran":pred_model_graphs["gran"],
-    #                      "GT":pred_model_graphs["GT"]}
     pred_graphs_processed = {}
     for model_name, graph_list in pred_model_graphs.items():
         pred_graphs_processed[model_name]= [nx.convert_node_labels_to_integers(nx.Graph(graph)) for graph in graph_list]
 
     for model_name, graph_list in tqdm(pred_model_graphs.items(),"evaluating graphs"):
-        ### 只算新结果
-        if not model_name == "gag" and not model_name == "GT":
-            print(f"Skiping {model_name}")
-            continue
         out = evaluate_sampled_graphs(graph_list,pred_model_graphs["GT"], model_name)
         for k,v in out.items():
             df.loc[model_name, f"{k}"] = v
@@ -168,7 +157,7 @@ def add_gem_col(df):
         "bwr_graphrnn",
         "graphmaker_sync",
         "ppgn",
-        "gag",
+        "samag",
         "SwinGNN",
         "GDSS",
         
@@ -195,14 +184,8 @@ def add_gem_col(df):
 
     return df
 
-# to be done
-def eval_tweet_graphs(model, checkpoint_dir, key):
-    pass
-
-
 
 data_names = [
-    # "llmcitationcora",
     "llmcitationciteseer",
     ]
 
@@ -215,11 +198,5 @@ negative_cols = ["degree_mmd",
                      ]
 use_cols = [*negative_cols,"valid","gem"]
 for data_name in data_names:
-    # df_path = os.path.join("graph_gen_df",data_name,"generated_eval_1000.csv")
-    # df = pd.read_csv(df_path,index_col=0)
-    # df = add_gem_col(df)
-    # df.to_csv(os.path.join("graph_gen_df",data_name,"generated_eval_1000_mean_new.csv") )
-    # df = pd.read_csv(os.path.join("graph_gen_df",data_name,"generated_eval_1000_mean_new.csv"),index_col=0)
-    # df[use_cols].to_markdown(os.path.join("graph_gen_df",data_name,"baseline.md"))
     eval_citation_graphs(data_name)
     

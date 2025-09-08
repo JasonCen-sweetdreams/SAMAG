@@ -22,7 +22,7 @@ pip install -i "requirements.txt"
 Firstly, please set up your API keys in `Emulate\llms\default_model_configs.json`:
 ```json
 [
-    // GPT api key
+    // GPT API
     {
         "model_type": "openai_chat",
         "config_name": "gpt-3.5-turbo-0125",
@@ -33,12 +33,12 @@ Firstly, please set up your API keys in `Emulate\llms\default_model_configs.json
             "temperature": 0.8
         }
 },
-    // VLLM Server api key
+    // VLLM Server API
  {
         "config_name": "llama3-70B",
         "model_type": "openai_chat",
         "model_name": "llama3-70B",
-        "api_key": "vllm_api",
+        "api_key": "vllm_server_api",
         "client_args": {
             "base_url": "vllm_server_url"
         },
@@ -58,20 +58,24 @@ export PYTHONPATH=./
 - To start building citation network in LLMGraph, you should first specify the dir of data and the config name, and then simply run by
     ```bash
     python start_launchers.py
-    python main.py --task citeseer --config "small" --build # build from synthetic tweet data
+    python main.py --task citeseer --config "small" --build
     ```
 
 - To start building social network in Emulate, you should first specify the dir of data and the config name, and then simply run by
     ```bash
     python start_launchers.py
-    python main.py --task tweets --config "small" --build # build from synthetic tweet data
+    python main.py --task tweets --config "small" --build
     ```
 
 - To start building movie rating network in Emulate, you should first specify the dir of data and the config name, and then simply run by
     ```bash
     python start_launchers.py
-    python main.py --task movielens --config "small" --build # build from synthetic tweet data
+    python main.py --task movielens --config "small" --build
     ```
 
-## Evaluation
-Coming soon...
+## 2. Evaluation
+### Graph Structure Alignment
+Please refer to [README For Graph Structure Alignment](./Emulate/baselines/readme.md)
+
+### Textual Feature Alignment
+> Coming soon...

@@ -30,7 +30,7 @@ class ArticleEnvironment(BaseEnvironment):
     
     author_agents:dict = {} # id: article_agent
     
-    agent_configs:dict = {} # 存储agent的config
+    agent_configs:dict = {}
     ablation_no_collaboration: bool = False
     
 
@@ -116,6 +116,7 @@ class ArticleEnvironment(BaseEnvironment):
         """Reset the environment"""
         pass
 
+
     def is_done(self) -> bool:
         """Check if the environment is done"""
         """True: Done"""
@@ -123,56 +124,6 @@ class ArticleEnvironment(BaseEnvironment):
             func_name = "get_article_written_num").content
         return self.article_written_num >= self.max_paper_num \
             or self.time_configs["cur_time"] >= self.time_configs["end_time"]
-        
-        
-    
-    # def generate_topic_one_group(self,
-    #                             group_id,
-    #                             communication_num = 10):
-                                      
-    #     """
-    #     the async run parse of tenant(tenant_id) communication.
-    #     return: the receivers, self(if continue_communication)
-    #     """
-    #     agents = self.agent_groups[group_id]["authors"]
-    #     research_content = self.agent_groups[group_id]["content"]
-    #     idx = 0
-        
-    #     for agent in agents:
-    #         self.call_agent_func(agent,"clear_discussion_cur")
-
-    #     from agentscope.msghub import msghub
-    #     with msghub(participants=agents) as hub:
-    #         for idx in range(communication_num):
-    #             agent = agents[idx%len(agents)]
-    #             role_description = self.call_manager_agent_func("get_author_description",
-    #                         kwargs={"agent_name":agent.name}).content
-    #             # print(role_description)
-    #             if ((idx+1)%2==0):
-    #                 research_content = self.call_agent_func(agent,
-    #                                                          "idea_generation",
-    #                                                          kwargs={"role_description":role_description,
-    #                                                      "research_content":research_content}).content
-    #                 finish_generation = research_content["finish"]
-    #                 if finish_generation: 
-    #                     self.agent_groups[group_id]["content"] = research_content
-    #                     break
-                
-    #             candidate_id_msg = self.call_agent_func(agent, "choose_researcher",
-    #                                  kwargs={"role_description":role_description,
-    #                                          "research_content":research_content})
-                
-    #             candidate_id = candidate_id_msg.content
-    #             role_description_2 = self.call_manager_agent_func("get_author_description",
-    #                         kwargs={"agent_name":candidate_id}).content
-                
-    #             group_discussion_msg = self.call_agent_func(agent, "group_discuss",
-    #                                  kwargs={"role_description_1":role_description,
-    #                                          "role_description_2":role_description_2,
-    #                                          "research_content":research_content,
-    #                                          "author_id": candidate_id})
-   
-    
 
             
     def write_article_one_group(self,
@@ -189,17 +140,10 @@ class ArticleEnvironment(BaseEnvironment):
                                 "write_article",
                                  kwargs={"research_content":research_content})
             
-            
             research_content = research_content.content
-            # research_content = self.call_agent_func(agent_first_author, 
-            #                                          "choose_reason",
-            #                                         kwargs={"research_content":research_content,
-            #                                                 "cur_time_str":self.time_configs["cur_time"].strftime("%Y-%m-%d")})
-            # research_content = research_content.content
             
             
     def communication(self):
-        
         research_msgs = []
         for group_id, group_info in enumerate(self.agent_groups):
             group = group_info["authors"]
@@ -214,7 +158,6 @@ class ArticleEnvironment(BaseEnvironment):
             research_msgs.append(research_content_msg)
         
         for group_id, research_msg in enumerate(research_msgs):
-            # self.agent_groups[group_id]["content"] = research_msg.content
             if not research_msg.content: 
                 self.agent_groups[group_id]["content"] = None
                 continue
@@ -243,20 +186,12 @@ class ArticleEnvironment(BaseEnvironment):
             research_msgs.append(research_content_msg)
 
         for group_id, research_msg in enumerate(research_msgs):
-            # self.agent_groups[group_id]["content"] = {**research_msg.content,
-            #                                           "time":self.time_configs["cur_time"].strftime("%Y-%m-%d")}
             if (not research_msg) or (not research_msg.content):
                 self.agent_groups[group_id]["content"] = None
                 continue
             self.agent_groups[group_id]["content"].update(research_msg.content)
             self.agent_groups[group_id]["content"]["time"] = self.time_configs["cur_time"].strftime("%Y-%m-%d")
             print(f"group {group_id} writing finish! Content: {self.agent_groups[group_id]['content']}")
-            
-        
-    
-    
-    
-
 
 
     def init_agent(self, author, author_info, sn, launcher_id = 0) -> ArticleAgentWrapper:
@@ -290,8 +225,7 @@ class ArticleEnvironment(BaseEnvironment):
     def group_assign_topic(self,
                    article_number = 10,
                    author_number = 5):
-        """_summary_
-
+        """
         Args:
             article_number (int, optional): the number of articles to be generated. Defaults to 10.
             author_number (int, optional): the number of authors for topic discussion (per article). Defaults to 5.
@@ -317,13 +251,6 @@ class ArticleEnvironment(BaseEnvironment):
                             "author_num":author_number
                         }
                     ).content 
-                    # authors = self.call_manager_agent_func(
-                    #     "get_llm_author",
-                    #     kwargs={
-                    #         "topic":topic,
-                    #         "author_num":author_number
-                    #     }
-                    # ).content # 暂不支持单作者
                     iter_time += 1
             else:
                 authors = self.call_manager_agent_func(
@@ -430,7 +357,6 @@ class ArticleEnvironment(BaseEnvironment):
         
 
     def add_author(self):
-        """这边需要按照活跃比例 去修改cur_agent_ids"""
         add_author_msg = Msg(
             "user",
             content="call_function",
@@ -443,7 +369,7 @@ class ArticleEnvironment(BaseEnvironment):
         )
         return_msg = self.manager_agent(add_author_msg)
         if isinstance(return_msg, PlaceholderMessage):
-            return_msg.update_value()# 堵塞
+            return_msg.update_value()# message block
             
     def step(self):       
         self.update_time()
@@ -460,10 +386,8 @@ class ArticleEnvironment(BaseEnvironment):
         else:
             print("Running without collaboration...")
         
-        # 接下来是写论文的过程
-        print("Environment status: writing...")
+        ### Generate papers
         self.write()
-        print("Environment status: Done writing!!!")
         articles = [agent_group["content"] for agent_group in self.agent_groups if agent_group["content"]]
 
         for idx in range(0, len(articles), 20):
@@ -472,13 +396,12 @@ class ArticleEnvironment(BaseEnvironment):
                                                  kwargs = {
                                                      "articles":sub_articles,
                                                      "update_retriever":False
-                            }).content # 初始化,在to_dist之后初始化
+                            }).content
         self.call_manager_agent_func(func_name="update",
                                      kwargs = {
                                          "update_retriever":True
-                            }).content # 初始化,在to_dist之后初始化)
+                            }).content
 
-        print(f"Environment status: Done generation!\nArticles: {articles}, now exiting...")
         self.agent_groups = []
         
             

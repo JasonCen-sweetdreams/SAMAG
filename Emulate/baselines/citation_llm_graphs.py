@@ -278,7 +278,7 @@ def build_graphs(article_meta_data:dict,
     article_graph = build_citation_graph(article_meta_data)
     graphs["article_citation"] = article_graph
    
-    # 节点是论文，边是论文间的引用
+    # nodes: papers, edges: citation between citation
     
     if "bibliographic_coupling" in graph_types:
         bibliographic_coupling_network = build_bibliographic_coupling_network(
@@ -291,7 +291,7 @@ def build_graphs(article_meta_data:dict,
         graphs["co_citation"] = co_citation_graph
     
     if "author_citation" in graph_types:
-        # 节点是作者， 边是他们的引用
+        # nodes: author, edges: citation
         author_citation_graph = build_author_citation_graph(article_meta_data,
                                                         author_info)
         graphs["author_citation"] = author_citation_graph
@@ -302,7 +302,7 @@ def build_graphs(article_meta_data:dict,
         country_citation_graph = build_country_citation_graph(article_meta_data,
                                                              author_info,
                                                              article_graph)
-        # 节点是国家， 边是他们的引用
+        # nodes: country, edges: citation
         graphs["country_citation"] = country_citation_graph
 
     if "co_authorship" in graph_types:
@@ -338,10 +338,8 @@ def build_graphs(article_meta_data:dict,
 def generate_citation_graphs(num_graphs,
                              min_size, 
                              max_size, 
-                             dataset = 'train', #
-                            #  graph_path = "/mnt/jiarui/graph_generation-main-6a992d0b151e7e9c0a23b3a351db730b4d6da666/data/netcraft/citation/citeseer/raw/article_meta_info_abstract.pt",
-                            #  graph_path = "/home/users/wangzh/cenjch3/GraphAgent/Emulate/tasks/citeseer/data/article_meta_info.pt",
-                            graph_path = "/home/users/wangzh/cenjch3/GAG_data/data/citeseer/data/article_meta_info.pt", # citeseer_raw dataset
+                             dataset = 'train',
+                             graph_path = "/home/users/wangzh/cenjch3/Raw_data/data/citeseer/data/article_meta_info.pt", # citeseer_raw dataset
                              seed=0):
 
     
@@ -350,7 +348,7 @@ def generate_citation_graphs(num_graphs,
     n = len(list(G.nodes()))
     if dataset == "train" or dataset == "val":
         G = G
-    else: # 预测后续graph生长
+    else: # predict graph expansion
         # G = G.subgraph(nodes[-2000:])
         Gs = []
         for _ in range(1,1+num_graphs):
@@ -416,7 +414,6 @@ def generate_citation():
         "test": test,
     }
 
-    # data_path = Path(".data")
     data_path = "Emulate/baselines/baseline_checkpoints"
     with open(data_path / f"llm{key}citeseer.pkl", "wb") as f:
         pickle.dump(dataset, f)

@@ -1,31 +1,33 @@
-# micro evluation 
-Metrics with reference to https://github.com/Genentech/bandwidth-graph-generation
-
-For the config setting used in paper (gpt-3.5-turbo): Use the configuration fast_gpt3.5_445.
-
-For the LLaMA setting: Use the configuration fast_vllm_445_test.
-
-*To avoid result randomness due to seed graph degree: we set use_graph_deg: False, citations: 2.
+# Micro-scale Evaluation 
 
 ## train dataset
-```cmd
-    python Emulate/baselines/get_expansion_dataset.py
+```bash
+python Emulate/baselines/get_expansion_dataset.py
 ```
-or use default: "Emulate/baselines/baseline_checkpoints/llmcitationciteseer.pkl"
+or use default: `Emulate/baselines/baseline_checkpoints/llmcitationciteseer.pkl`
 
 
 
-## generate sampled gag results
-```cmd
-    python Emulate/baselines/get_gag_graphs.py
+## generate sampled samag results
+```bash
+python Emulate/baselines/get_llmgen_graphs.py
 ```
 
 ## evaluate
-```cmd
-    python Emulate/baselines/eval_pred_graphs.py
+```bash
+python Emulate/baselines/eval_pred_graphs.py
 ```
 
+And the results will be stored in `./graph_gen_df`
 
+# Macro-scale Evaluation
+```bash
+python evaluate/article/main.py
+
+python evaluate/social/main.py
+
+python evaluate/movie/main.py
+```
 <!-- # macro evaluation
 result checkpoints
 "Emulate/tasks/citeseer/configs/fast_vllm"

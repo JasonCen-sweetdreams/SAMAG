@@ -312,8 +312,6 @@ So you need to give your plan, and respond in the format of a vector with a leng
         print("Add movie is over")
         self.call_manager_agent_func("update").content
 
-        # self.update_agents() # 一开始加入所有agent
-        # rate movie process
         all_ratings_this_turn = []
         all_agent_ids = list(self.cur_agents.keys())
         
@@ -371,7 +369,6 @@ So you need to give your plan, and respond in the format of a vector with a leng
                 all_group_results.extend(m.content or {})
 
         logger.info(f"Group comms finished!")
-        # solo action
         solo_results = []
         for idx in range(0, len(ungrouped_agent_ids), 20):
             sub_ungrouped_agents = ungrouped_agent_ids[idx:idx+20]
@@ -393,16 +390,10 @@ So you need to give your plan, and respond in the format of a vector with a leng
         # update rating DB
         print(f"--- TIME: {self.time_configs['cur_time']} ---")
         print(f"Total ratings collected in this step: {len(all_ratings_this_turn)}")
-        if len(all_ratings_this_turn) > 0:
-            print(f"First 3 ratings: {all_ratings_this_turn[:3]}")
         self.update_movie_manager(all_ratings_this_turn)
                 
         # update movie/watcher DB and Time
         self.update_time()
-
-        ### testing
-        logger.info("Step Finished! Now exiting...")
-        # exit(0)
         
     @timed
     def update_movie_manager(self,
