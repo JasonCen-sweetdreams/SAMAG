@@ -466,9 +466,6 @@ def visualize_social(
                     df_root:str,
                     save_root:str):
     """single graph"""
-    # DG, G, action_graph, date_str, positions = graph_lists[-1]=
-    
-
     os.makedirs(save_root, exist_ok=True)
     """graph evolution along time"""
     # 可视化shrinking diameter
@@ -501,7 +498,6 @@ def calculate_single_graph(data_root,
                                                 date_map,
                                                 transitive_nodes)
     import pickle
-    # debug, save seed graph
     graphs = {
         "follow":DG,
         "friend":G,
@@ -563,7 +559,6 @@ def plot_single_graph(data_root,
     for graph in graph_name_map.values():
         print_graph_info(graph)
     for graph_name, graph  in graph_name_map.items():
-        # 可视化prefrential attachment/ 度分布
         # plot_degree_figures(graph,save_dir=save_root,graph_name=graph_name)
         plot_friend_degree(graph, save_root, graph_name)
         # plot_indegree_outdegree(graph, save_root, graph_name)
@@ -582,40 +577,24 @@ import matplotlib.pyplot as plt
 import networkx as nx
 
 def plot_power_law_distribution(graph: nx.DiGraph, title: str, save_path: str = None):
-    """
-    计算、绘制并可选择保存给定图的入度幂律分布。
-
-    参数:
-    - graph (nx.DiGraph): 输入的有向图。
-    - title (str): 图像的标题。
-    - save_path (str, optional): 保存图像的文件路径 (例如 'my_plot.pdf')。
-                                 如果为 None，则直接显示图像。
-    """
-    # 步骤1: 提取所有节点的入度，忽略度为0的节点
-    # 注意: Action Network 的边 A->B 表示 A 对 B 进行了操作，所以 B 是被操作者。
-    # 我们通常关心的是节点被操作的次数，也就是节点的“入度”。
     in_degrees = [d for n, d in graph.in_degree() if d > 0]
     if not in_degrees:
-        print(f"警告: '{title}' 中没有入度大于0的节点，无法绘制幂律图。")
+        print(f"Warning: '{title}' in_degree list empty!")
         return
 
-    # 步骤2: 使用powerlaw库拟合数据
+    # power-law fit
     fit = powerlaw.Fit(in_degrees, discrete=True)
-    
-    # 步骤3: 获取拟合参数
     alpha = fit.power_law.alpha
     kmin = fit.power_law.xmin
     Dk = fit.power_law.D
 
-    print(f"为 '{title}' 拟合结果: alpha = {alpha:.2f}, k_min = {kmin}, D_k = {Dk:.2f}")
+    print(f"'{title}': alpha = {alpha:.2f}, k_min = {kmin}, D_k = {Dk:.2f}")
 
-    # 步骤4: 开始绘图
     fig, ax = plt.subplots(figsize=(8, 6))
 
     fit.plot_pdf(ax=ax, color='b', marker='d', linestyle='None', markersize=5, label='Linearly-binned Degree')
     fit.power_law.plot_pdf(ax=ax, color='r', linestyle='-', linewidth=2, label='Power Law Fit')
 
-    # 步骤5: 美化图像
     ax.set_title(title, fontsize=20)
     ax.set_xlabel('Degree $k$', fontsize=18)
     ax.set_ylabel('$P_k$', fontsize=18, rotation=0, labelpad=20)
@@ -633,10 +612,9 @@ def plot_power_law_distribution(graph: nx.DiGraph, title: str, save_path: str = 
 
     plt.tight_layout(rect=[0, 0.1, 1, 1])
     
-    # 步骤6: 保存或显示图像
     if save_path:
         plt.savefig(save_path, format='pdf', bbox_inches='tight')
-        print(f"图像已成功保存到: {save_path}")
+        print(f"Figure saved to: {save_path}")
     else:
         plt.show()
 
@@ -644,7 +622,7 @@ def plot_power_law_distribution(graph: nx.DiGraph, title: str, save_path: str = 
 
 
 if __name__ == "__main__":
-    args = parser.parse_args()  # 解析参数
+    args = parser.parse_args()
     save_root = "Emulate/tasks/{task}/configs/{config}/evaluate".format(
         task = args.task,
         config = args.config
@@ -665,26 +643,25 @@ if __name__ == "__main__":
     diameter_cache = {}
     from pathlib import Path
     import pickle
-    font_path = '/home/users/wangzh/cenjch3/GraphAgent_writing/test/Times_New_Roman/TimesNewerRoman-Regular.otf'
+    font_path = './test/Times_New_Roman/TimesNewerRoman-Regular.otf'
     font_manager.fontManager.addfont(font_path)
     prop = font_manager.FontProperties(fname=font_path)
     rcParams['font.family'] = 'serif'
     rcParams['font.serif'] = [prop.get_name()]
-    print(f"字体 '{prop.get_name()}' 已成功设置。")
-    ### big
+    ### if big eval:
     count = 0
-    # for DG, G, action_graph, date_str, positions in graph_generator:
+    for DG, G, action_graph, date_str, positions in graph_generator:
         
-        # graph_lists.append((DG, G, action_graph, date_str, positions))
+        graph_lists.append((DG, G, action_graph, date_str, positions))
 
-        ### big 
+        ### if big eval:
         # count += 1
         # if count == 5:
         #     graph_lists.append((DG, G, action_graph, date_str, positions))
             # break
 
-    ### big eval
-    print(f"getting final snapshot of {len(graph_lists)} snapshots!")
+    ### if big eval:
+    # print(f"getting final snapshot of {len(graph_lists)} snapshots!")
     # calculate_social_matrix([graph_lists[-1]], save_root)
     # final_action_graph = graph_lists[-1][2]
     # output_filename = os.path.join(vis_save_root, "action_network_power_law.pdf")
@@ -696,11 +673,11 @@ if __name__ == "__main__":
 
     # shrinking diameter
     print("Getting all snapshots!")
-    # calculate_social_matrix(graph_lists, save_root)
+    calculate_social_matrix(graph_lists, save_root)
     print("finish calculate social matrix!")
 
     plot_shrinking_diameter(matrix_dir=save_root, save_dir=vis_save_root, graph_name="tweet")
-    print("完成绘制 shrinking diameter 图！")
+    print("finish visualisation for shrinking diameter!")
 
     # # visualize_sn_graphs(graph_lists, vis_save_root)
     # print("finish plot social network graph!")

@@ -78,4 +78,4 @@ export PYTHONPATH=./
 Please refer to [README For Graph Structure Alignment](./Emulate/baselines/readme.md)
 
 ### Textual Feature Alignment
-> Coming soon...
+Please refer to [GNN Evaluation for SAMAG](https://github.com/JasonCen-sweetdreams/SAMAG-GNN-Evaluation)
