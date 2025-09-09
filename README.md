@@ -75,7 +75,7 @@ export PYTHONPATH=./
 
 ## 2. Evaluation
 ### Graph Structure Alignment
-Please refer to [README For Graph Structure Alignment](./Emulate/baselines/readme.md)
+Please refer to [README For Graph Structure Alignment](./Emulate/baselines/readme.md).
 
 ### Textual Feature Alignment
-Please refer to [GNN Evaluation for SAMAG](https://github.com/JasonCen-sweetdreams/SAMAG-GNN-Evaluation)
+Please refer to [GNN Evaluation for SAMAG](https://github.com/JasonCen-sweetdreams/SAMAG-GNN-Evaluation).
