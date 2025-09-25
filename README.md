@@ -1,5 +1,7 @@
 # SAMAG: Structure-Aware Multi-Agent Graph Generation with Large Language Models
 
+![SAMAG Framework](./FrameworkFigure.png)
+
 ## 0. Environment Setup
 Create a virtual environment for SAMAG
 ```bash
