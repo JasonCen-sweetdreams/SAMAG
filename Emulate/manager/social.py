@@ -383,7 +383,7 @@ Your friend include:
         ids_added = []
 
         if self.last_added_time == date.min:
-            print("初始化")
+            print("Initializing...")
             if self.social_member_data.shape[0] < self.last_added_index:
                 return {}
             # init data
@@ -440,7 +440,7 @@ Your friend include:
         if ids_added:
             self._update_user_graph()
         else:
-            print(f"ids_added 为空！TIME: {cur_time}")
+            print(f"ids_added empty！TIME: {cur_time}")
         return profiles
     
 
@@ -453,9 +453,7 @@ Your friend include:
             {"agent_id": 5, "cur_time": "2025-06-06", "twitters": [ {...} ]},
             ...
           ]
-        返回：总共真正写入的推文条数（int）
         """
-        # 1）先把所有 action_logs 和 tweets 汇总到同一个列表里
         all_action_logs = []
         all_tweets = []
         available_actions = ["tweet", "retweet", "reply"]
@@ -463,7 +461,6 @@ Your friend include:
         num_docs = len(self.forum_loader.docs)
         for entry in data_list:
             agent_id = entry["agent_id"]
-            # 可能传过来的 agent_id 是字符串，先转成 int
             if isinstance(agent_id, str):
                 agent_id = int(agent_id)
             cur_time_str = entry["cur_time"]
@@ -532,7 +529,6 @@ Your friend include:
                                 and owner_id != agent_id
                             ):
                                 if agent_id in self.social_member_data.loc[owner_id, "follow"]:
-                                    # 互关，改为 friend
                                     self.social_member_data.loc[owner_id, "friend"].append(agent_id)
                                     self.social_member_data.loc[owner_id, "follow"].remove(agent_id)
                                     self.social_member_data.loc[agent_id, "friend"].append(owner_id)
@@ -541,40 +537,32 @@ Your friend include:
 
                                 all_action_logs.append([agent_id, owner_id, "follow", cur_date])
 
-                        # 不管是不是 follow，只要是 retweet 或 reply，都要记 action_log
                         all_action_logs.append([agent_id, owner_id, action, cur_date])
 
-                        # 如果有 @ 提及
                         for mention_id in tweet.get("mention", []):
                             mention_id = int(mention_id)
                             if mention_id != agent_id:
                                 all_action_logs.append([agent_id, mention_id, "mention", cur_date])
 
                 except Exception as e:
-                    # 任何单条推文处理异常，都跳过
                     logger.exception(f"[ERROR] agent_id={agent_id}: {e}\n{traceback.print_exc()}\nTweet: {tweet}")
                     continue
 
-        # 2）把所有 action_logs 追加到 self.action_logs
         self.action_logs.extend(all_action_logs)
 
-        # 3）如果没有真正要写入的推文，直接返回 0
         if len(all_tweets) == 0:
             logger.warning(f"all_tweets len is 0! Check below:\n{data_list[:3]}")
             return 0
 
-        # 4）把所有推文一次性转 DataFrame 并送给 forum_loader.add_social
         tweets_df = pd.DataFrame(all_tweets)
         docs = self.forum_loader.add_social(tweets_df)
         logger.info(f"Added {len(docs)} new docs to loader!")
 
-        # 5）一次性算 embedding，合并到底层索引
         db_update = FAISS.from_documents(docs, self.embeddings)
         logger.info("Get new tweets embedding (batch)!")
         self.db.merge_from(db_update)
         logger.info("Database updated (batch)!")
 
-        # 6）返回真正写入的推文数
         return len(docs)
 
 
@@ -630,7 +618,7 @@ Your friend include:
                             owner_id not in self.social_member_data.loc[agent_id,"friend"] and\
                             owner_id != agent_id:
                             if agent_id in self.social_member_data.loc[owner_id,"follow"]:
-                                # 互关了，需要改成friend
+
                                 self.social_member_data.loc[owner_id,"friend"].append(agent_id)
                                 self.social_member_data.loc[owner_id,"follow"].remove(agent_id)
                                 self.social_member_data.loc[agent_id,"friend"].append(owner_id)
@@ -651,7 +639,7 @@ Your friend include:
                 continue
             
         self.action_logs.extend(action_logs)
-        ### 更新向量数据库
+        # update database
         if len(tweets) > 0:
             tweets = pd.DataFrame(tweets)
             docs = self.forum_loader.add_social(tweets)
@@ -669,7 +657,6 @@ Your friend include:
         把 new_docs 中的每个 Document 对应的 'tweet' 节点 和 'user->tweets' / 'user->retweets' 边，
         插入到 self.social_graph 里。
         """
-        # 若社交图尚未构建，直接整体重建
         if self.social_graph is None:
             all_docs = self.forum_loader.load()
             graph_data, idx_to_doc = build_social_graph(self.social_member_data, all_docs)
@@ -682,14 +669,11 @@ Your friend include:
             u_idx = int(doc.metadata["user_index"])
             action = doc.metadata.get("action", "tweet").lower()
 
-            # 1) 更新 tweet 节点总数
             if t_idx >= self.social_graph['tweet'].num_nodes:
                 self.social_graph['tweet'].num_nodes = t_idx + 1
 
-            # 2) 更新 idx_to_doc 映射（以便后续在图检索中能拿到 metadata）
             self._idx_to_doc[t_idx] = doc
 
-            # 3) 插入 “user->tweet” 或 “user->retweet” 边
             if action == "tweet":
                 old_ei = self.social_graph['user','tweets','tweet'].edge_index \
                          if ('user','tweets','tweet') in self.social_graph.edge_types else None
@@ -700,7 +684,7 @@ Your friend include:
                     new_ei = new_pair
                 self.social_graph['user','tweets','tweet'].edge_index = new_ei
 
-            else:  # 转发/回复
+            else:
                 old_ei = self.social_graph['user','retweets','tweet'].edge_index \
                          if ('user','retweets','tweet') in self.social_graph.edge_types else None
                 new_pair = torch.tensor([[u_idx],[t_idx]], dtype=torch.long)

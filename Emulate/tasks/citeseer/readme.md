@@ -73,13 +73,21 @@ environment:
       
       # hyperparameters for recall retriever
       retriever_kwargs: 
-        type: graph_vector_retriever
+        # type: graph_vector_retriever
+        type: hybrid_graph_vector_retriever_for_article
+        # graph_structure_retriever_for_article for *simple* & community_graph_retriever_for_article for *community*
+        Graph_RAG_type: community_graph_retriever_for_article 
+        expansion_strategy: community
+        allow_co_citation: True
+        allow_co_author: True
+        hybrid_alpha: 0.3
         search_kwargs:
           k: 20
           score_cite: true
         
       # hyperparameters for reranking 
       tool_kwargs:
+      # Optional: "community", "big_name","topic", "write_topic", "semantic", "hybrid_sort_com_sem"
         filter_keys:
         - big_name
         - topic

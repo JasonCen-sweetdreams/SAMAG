@@ -29,11 +29,6 @@ from loguru import logger
 os.environ["CUDA_LAUNCH_BLOCKING"] = "1"
 
 def parse_date_str(date_str):
-    """
-    将包含年份和月份或年份、月份和日的字符串（如'2401'或'240101')转换为datetime对象。
-    date_str: 一个字符串，格式为'YYYYMM'或'YYYYMMDD'。
-    返回: 对应的datetime对象。
-    """
     if len(date_str) == 4:
         return datetime.strptime(date_str, "%y%m").date()
     if len(date_str) == 7:
@@ -58,9 +53,6 @@ def pre_process(article_meta_data:dict,
                 cur_time:date,
                 load_history:bool=False):
     
-    """返回按照时间排序的article_meta_data和author_data,以及切分到当前时间步的ratings矩阵
-    article_meta_data: dict 切分到cur_time, author_data: dict不切分
-    """
     article_meta_data = transfer_time(article_meta_data)
     author_data = transfer_time(author_data)
     if load_history:

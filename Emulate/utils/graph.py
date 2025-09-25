@@ -13,30 +13,30 @@ def build_article_graph(
     docs:         List[Document]
 ) -> Tuple[HeteroData, Dict[int,str], Dict[str,int], Dict[int,Document]]:
     """
-    构建一个 HeteroData 图，包含两个节点类型 'article' 和 'author'，
-    以及 'cites' 和 'writes' 两种边。
+    Build a HeteroData graph with two node types 'article' and 'author',
+    and two edge types 'cites' and 'writes'.
 
-    返回：
-      - data:         构建好的 HeteroData
+    Returns:
+      - data: the constructed HeteroData
       - node_id_to_title: {article_node_id -> title}
       - title_to_node_id: {title -> article_node_id}
       - index_to_doc: {article_node_id -> Document}
     """
     data = HeteroData()
 
-    # 1) 构建 article 节点映射
+    # 1) Build article node mapping
     titles = list(article_meta.keys())
     title_to_node_id = {t: i for i, t in enumerate(titles)}
     node_id_to_title = {i: t for t, i in title_to_node_id.items()}
     data['article'].num_nodes = len(titles)
 
-    # 2) 构建 author 节点映射
+    # 2) Build author node mapping
     author_ids = list(author_meta.keys())
     author_to_node_id = {aid: i for i, aid in enumerate(author_ids)}
     node_id_to_author = {i: aid for aid, i in author_to_node_id.items()}
     data['author'].num_nodes = len(author_ids)
 
-    # 3) 添加 article -> article 引用边（cites）
+    # 3) Add article -> article citation edges ('cites')
     src, dst = [], []
     for title, meta in article_meta.items():
         u = title_to_node_id[title]
@@ -48,7 +48,7 @@ def build_article_graph(
     if src:
         data['article', 'cites', 'article'].edge_index = torch.tensor([src, dst], dtype=torch.long)
 
-    # 4) 添加 author -> article 写作边（writes）
+    # 4) Add author -> article writing edges ('writes')
     src, dst = [], []
     for title, meta in article_meta.items():
         v = title_to_node_id[title]
@@ -60,10 +60,10 @@ def build_article_graph(
     if src:
         data['author', 'writes', 'article'].edge_index = torch.tensor([src, dst], dtype=torch.long)
 
-    # 5) 建立 node_idx -> Document 的映射
+    # 5) Build mapping from node_idx -> Document
     index_to_doc: Dict[int, Document] = {}
-    # docs 是 DirectoryArticleLoader.load() 返回的 list[Document]
-    # 每个 doc.metadata['title'] 对应 article_meta 的 key
+    # docs: the list[Document] returned by DirectoryArticleLoader.load()
+    # Each doc.metadata['title'] corresponds to a key in article_meta
     for doc in docs:
         t = doc.metadata.get('title')
         if t in title_to_node_id:
@@ -78,42 +78,36 @@ def build_social_graph(
     docs: List[Document]
 ) -> Tuple[HeteroData, Dict[int, Document]]:
     """
-    构建社交环境的异构图 HeteroData，包含两类节点：'user' 和 'tweet'；
-    以及四种有向边：
-      - ('user','follows','user')，对应 social_member_data['follow'] 列表；
-      - ('user','friends','user')，对应 social_member_data['friend'] 列表；
-      - ('user','tweets','tweet')，发布新 tweet；
-      - ('user','retweets','tweet')，用户转发/回复 tweet；
-    返回：
-      - data: HeteroData 图
-      - idx_to_doc: {tweet_node_id -> Document} 的映射，以便检索后返回 Document。
+    Build a heterogeneous social HeteroData graph with two node types:
+      'user' and 'tweet';
+    and four directed edge types:
+      - ('user','follows','user'): from social_member_data['follow'] lists
+      - ('user','friends','user'): from social_member_data['friend'] lists
+      - ('user','tweets','tweet'): user posts a new tweet
+      - ('user','retweets','tweet'): user retweets/replies to a tweet
+
+    Returns:
+      - data: the HeteroData graph
+      - idx_to_doc: mapping {tweet_node_id -> Document} for retrieval
     """
 
     data = HeteroData()
 
-    # ————————————
-    # 1) 添加 'user' 和 'tweet' 节点数量
-    # ————————————
+    # 1) Add node counts for 'user' and 'tweet'
     num_users = int(social_member_data.shape[0])
-    # 先统计所有 docs 中的 tweet_idx 最大值，确定总 tweet 节点数
     tweet_indices = [int(doc.metadata["tweet_idx"]) for doc in docs]
     max_tweet_idx = max(tweet_indices) if tweet_indices else -1
-    num_tweets = max_tweet_idx + 1  # 假设 tweet_idx 从0开始连续
+    num_tweets = max_tweet_idx + 1
 
     data['user'].num_nodes = num_users
     data['tweet'].num_nodes = num_tweets
 
-    # ————————————
-    # 2) 构建 user->user 的 follows 边
-    # ————————————
+    # 2) Build user->user 'follows' edges
     follows_src = []
     follows_dst = []
-    # 假设 social_member_data 有列 "user_index", "follow"（列表），"friend"（列表）
-    # user_index 本身等于 row.index
     for row in social_member_data.itertuples():
         u = int(row.user_index)
-        for v in row.follow:  # 每个 v 都是 int 型的 user_index
-            # 添加单向边 u -> v
+        for v in row.follow:
             follows_src.append(u)
             follows_dst.append(int(v))
 
@@ -121,19 +115,15 @@ def build_social_graph(
         edge_index = torch.tensor([follows_src, follows_dst], dtype=torch.long)
         data['user', 'follows', 'user'].edge_index = edge_index
 
-    # ————————————
-    # 3) 构建 user->user 的 friends 边
-    # ————————————
+    # 3) Build user->user 'friends' edges
     friends_src = []
     friends_dst = []
     for row in social_member_data.itertuples():
         u = int(row.user_index)
         for v_ in row.friend:
             v = int(v_)
-            # 添加 u->v
             friends_src.append(u)
             friends_dst.append(v)
-            # 添加 v->u（保证双向）
             friends_src.append(v)
             friends_dst.append(u)
 
@@ -142,24 +132,21 @@ def build_social_graph(
         data['user', 'friends', 'user'].edge_index = edge_index
 
 
-    # ————————————
-    # 4) 构建 user->tweet 的 tweets（原创）和 retweets（转发/回复）边
-    # ————————————
+    # 4) Build user->tweet 'tweets' (original) and 'retweets' (retweet/reply) edges
     tweets_src = []
     tweets_dst = []
     retweets_src = []
     retweets_dst = []
     for doc in docs:
-        # doc.metadata 中至少包含：'tweet_idx'、'user_index'、'action'、'origin_tweet_idx'
         t_idx = int(doc.metadata["tweet_idx"])
         u_idx = int(doc.metadata["user_index"])
         action = doc.metadata.get("action", "tweet").lower()
         if action == "tweet":
-            # 原创：user -> tweet
             tweets_src.append(u_idx)
             tweets_dst.append(t_idx)
         else:
-            # 转发或回复：user -> tweet；虽然源 tweet 放在 origin_tweet_idx，但这里只要把用户映射到该 tweet 上
+            # retweet or reply: user -> tweet; although the source tweet is in origin_tweet_idx,
+            # we only need to connect the user to the (current) tweet here
             retweets_src.append(u_idx)
             retweets_dst.append(t_idx)
 
@@ -172,9 +159,7 @@ def build_social_graph(
             [retweets_src, retweets_dst], dtype=torch.long
         )
 
-    # ————————————
-    # 5) 构建 tweet_idx -> Document 的映射，便于最后检索后返回 Document
-    # ————————————
+    # 5) Build mapping tweet_idx -> Document for retrieval
     idx_to_doc: Dict[int, Document] = {}
     for doc in docs:
         t_idx = int(doc.metadata["tweet_idx"])
@@ -189,19 +174,20 @@ def build_movie_graph(
         ratings_data: np.ndarray,
 ) -> HeteroData:
     """
-    根据持久化的用户、电影、评分数据构建一个异构图。
+    Build a heterogeneous graph from persisted users, movies, and ratings.
+
     Nodes:
     - User (e.g., 'u_1')
     - Movie (e.g., 'm_34')
     - Genre (e.g., 'g_Comedy')
+
     Edges:
-    - (User) -[RATED]-> (Movie)  (带有评分和时间戳属性)
+    - (User) -[RATED]-> (Movie)  (with rating and timestamp attributes)
     - (Movie) -[HAS_GENRE]-> (Genre)
     """
     data = HeteroData()
 
-    # 1. 节点ID映射
-    # 创建从原始ID到从0开始的连续整数索引的映射
+    # 1. Node ID mappings
     user_ids = np.unique(users_data[:, 0].astype(int))
     user_mapping = {token: i for i, token in enumerate(user_ids)}
 
@@ -213,8 +199,7 @@ def build_movie_graph(
     
     mapping = {'user': user_mapping, 'movie': movie_mapping, 'genre': genre_mapping}
 
-    # 2. 节点特征编码
-    # 用户特征 (Gender, Age, Occupation - 进行独热编码)
+    # 2. Node feature encoding
     user_df = pd.DataFrame(users_data, columns=['UserID', 'Gender', 'Age', 'OccupationID', 'Zip-code', 'Timestamp'])
     user_df['Age'] = user_df['Age'].astype('category')
     user_df['OccupationID'] = user_df['OccupationID'].astype('category')
@@ -225,31 +210,28 @@ def build_movie_graph(
     
     user_features = pd.concat([gender_one_hot, age_one_hot, occupation_one_hot], axis=1)
     
-    # 按映射顺序排序特征
     sorted_user_features = torch.tensor(user_features.reindex(user_ids).values, dtype=torch.float)
     data['user'].x = sorted_user_features
 
-    # 电影特征 (Genres - 进行Multi-hot编码)
     movie_genres = [row[2].split('|') for row in movies_data]
     mlb = MultiLabelBinarizer(classes=all_genres)
     movie_genre_features = torch.tensor(mlb.fit_transform(movie_genres), dtype=torch.float)
     data['movie'].x = movie_genre_features
     
-    # 类型节点没有特征
     data['genre'].num_nodes = len(all_genres)
 
-    # 3. 边索引和边属性
-    # 用户 -> 电影 (rated)
+    # 3. Edge indices and edge attributes
+    # User -> Movie (rated)
     rated_src = [user_mapping[uid] for uid in ratings_data[:, 0].astype(int)]
     rated_dst = [movie_mapping[mid] for mid in ratings_data[:, 1].astype(int)]
     data['user', 'rated', 'movie'].edge_index = torch.tensor([rated_src, rated_dst], dtype=torch.long)
     data['user', 'rated', 'movie'].edge_attr = torch.tensor(ratings_data[:, 2].astype(float), dtype=torch.float).unsqueeze(1) # 评分作为边属性
 
-    # 电影 -> 用户 (rev_rated - 反向边，便于GNN)
+    # Movie -> User
     data['movie', 'rev_rated', 'user'].edge_index = torch.tensor([rated_dst, rated_src], dtype=torch.long)
     data['movie', 'rev_rated', 'user'].edge_attr = torch.tensor(ratings_data[:, 2].astype(float), dtype=torch.float).unsqueeze(1)
 
-    # 电影 -> 类型 (has_genre)
+    # Movie -> Genre (has_genre)
     genre_src, genre_dst = [], []
     for movie_row in movies_data:
         movie_id = int(movie_row[0])
@@ -259,5 +241,4 @@ def build_movie_graph(
             genre_dst.append(genre_mapping[genre])
     data['movie', 'has_genre', 'genre'].edge_index = torch.tensor([genre_src, genre_dst], dtype=torch.long)
     
-    print("HeteroData knowledge graph built successfully.")
     return data, mapping

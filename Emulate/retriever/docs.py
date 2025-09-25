@@ -145,7 +145,7 @@ class HybridGraphVectorRetriever(VectorStoreRetriever):
     graph_retriever: Any = Field(default=None, description="Graph-based neighbor retriever")
     compare_function: Optional[Callable] = None
     graph_hops: int = 1  # Default 1-hop
-    # 扩展方法
+    # Expansion strategy
     expansion_strategy: str = "simple"   # "community"
 
     def __init__(self,
@@ -169,7 +169,7 @@ class HybridGraphVectorRetriever(VectorStoreRetriever):
         )
     
     def _get_relevant_documents(self, query: str, *, run_manager=None) -> List:
-        # 1) FAISS 语义检索
+        # 1) semantic retrieval
         if "similarity" in self.search_type:
             docs_and_scores = self.vectorstore.similarity_search_with_relevance_scores(
                 query, **self.search_kwargs
@@ -182,9 +182,9 @@ class HybridGraphVectorRetriever(VectorStoreRetriever):
         else:
             raise ValueError(f"search_type {self.search_type} not supported.")
 
-        # 2) 图邻居扩展
+        # 2) Graph-neighborhood expansion
         expanded = []
-        # 社区检测
+        # Community detection
         if self.expansion_strategy == "community":
             if hasattr(self.graph_retriever, 'retrieve_by_common_neighbors'):
                 expanded = self.graph_retriever.retrieve_by_common_neighbors(initial_docs, hops=self.graph_hops)
@@ -205,7 +205,7 @@ class HybridGraphVectorRetriever(VectorStoreRetriever):
         else:
             raise ValueError(f"Unknown expansion_strategy: {self.expansion_strategy}")
 
-        # 3) 去重并合并
+        # 3) Deduplicate and merge
         seen, final = set(), []
         for d in initial_docs + expanded:
             t = d.metadata.get("title")
@@ -231,8 +231,8 @@ class HybridGraphVectorRetriever(VectorStoreRetriever):
 @retriever_registry.register("graph_structure_retriever_for_article")
 class GraphRAGRetriever:
     """
-    基于异构图的文献检索器，支持两类节点：article 与 author；
-    并提供可解释的检索路径信息。
+    Graph-based literature retriever over a heterogeneous graph with two node types: 'article' and 'author'.
+    Provides explainable retrieval path information.
     """
     def __init__(
         self,
@@ -254,20 +254,18 @@ class GraphRAGRetriever:
 
     def retrieve_by_title(self, title: str, hops: int = 1) -> List[Document]:
         """
-        以给定标题为起点，返回多跳邻居文献列表，并在文档 metadata 中附加检索路径。
+        Starting from the given title, return multi-hop neighbor articles and
+        attach the retrieval paths to each document's metadata.
         """
         start_idx = self.title_to_node_id.get(title)
         if start_idx is None:
             return []
 
-        # 保存每个文档的可解释路径
         retrieved: Dict[int, Dict[str, Any]] = {}
 
-        # 初始化当前层级节点集合
         current = {start_idx}
         for hop in range(hops):
             next_level = set()
-            # 1. 引用关系扩展
             # article -> cites -> article
             if "cites" in self.edge_types:
                 src, dst = self.graph['article', 'cites', 'article'].edge_index
@@ -276,7 +274,7 @@ class GraphRAGRetriever:
                         reason = f"hop_{hop+1}: {self.node_id_to_title[u]} cites {self.node_id_to_title[v]}"
                         next_level.add(v)
                         retrieved.setdefault(v, {"paths": []})["paths"].append(reason)
-            # article <- cites <- article (被引用)
+            # article <- cites <- article
             if self.allow_co_citation:
                 src, dst = self.graph['article', 'cites', 'article'].edge_index
                 for u, v in zip(src.tolist(), dst.tolist()):
@@ -285,16 +283,13 @@ class GraphRAGRetriever:
                         next_level.add(u)
                         retrieved.setdefault(u, {"paths": []})["paths"].append(reason)
 
-            # 2. 作者扩展
             if self.allow_co_author and "writes" in self.graph.node_types:
-                # 获取作者节点
                 # article <- writes - author
                 aw_src, aw_dst = self.graph['author', 'writes', 'article'].edge_index
                 # article -> authored_by -> author
                 for aid, art in zip(aw_src.tolist(), aw_dst.tolist()):
                     if art in current:
                         # author aid 写过 article art
-                        # 基于该 author 寻找其他文章
                         for a2, art2 in zip(aw_src.tolist(), aw_dst.tolist()):
                             if a2 == aid and art2 not in retrieved and art2 not in current:
                                 reason = f"hop_{hop+1}: co-author via author_{aid} wrote {self.node_id_to_title[art2]}"
@@ -303,12 +298,10 @@ class GraphRAGRetriever:
 
             current = next_level
 
-        # 构造返回文档列表，并写入 metadata 路径信息
         docs: List[Document] = []
         for idx, info in retrieved.items():
             doc = self.index_to_doc.get(idx)
             if doc:
-                # 将检索路径附加到 metadata
                 doc.metadata = dict(doc.metadata)
                 doc.metadata['retrieval_paths'] = info['paths']
                 docs.append(doc)
@@ -340,9 +333,9 @@ class GraphRAGRetriever:
 @retriever_registry.register("community_graph_retriever_for_article")
 class CommunityGraphRetriever(GraphRAGRetriever):
     """
-    基于共同邻居
-    目标：找能够连接多个锚点的社区核心节点
-    复用GraphRAGRetriever的数据初始化
+    Based on common neighbors.
+    Goal: find community core nodes that connect multiple anchors.
+    Reuses GraphRAGRetriever's data initialization.
     """
     def __init__(self, pyg_graph_data, node_id_to_title, title_to_node_id, index_to_doc, edge_types = None, allow_co_citation = False, allow_co_author = True):
         super().__init__(pyg_graph_data, node_id_to_title, title_to_node_id, index_to_doc, edge_types, allow_co_citation, allow_co_author)
@@ -367,7 +360,6 @@ class CommunityGraphRetriever(GraphRAGRetriever):
         neighbor_titles = [doc.metadata.get("title") for doc in all_neighbors_docs if doc.metadata.get("title")]
         common_neighbor_count = Counter(neighbor_titles)
 
-        # 移除原始锚点，避免重复
         for title in anchor_titles:
             if title in common_neighbor_count:
                 del common_neighbor_count[title]
@@ -400,9 +392,9 @@ class GraphSocialRetriever:
         allow_retweet: bool = True
     ):
         """
-        data: 之前 build_social_graph 返回的 HeteroData
-        idx_to_doc: tweet_idx -> Document
-        max_hops: 默认一次邻居，亦可传入多跳
+        data: HeteroData returned by build_social_graph
+        idx_to_doc: mapping tweet_idx -> Document
+        max_hops: default one-hop; can be set to multi-hop
         """
         self.data = data
         self.idx_to_doc = idx_to_doc
@@ -413,60 +405,54 @@ class GraphSocialRetriever:
                          depth: int = 1,
                          top_k: int = 10) -> List[Document]:
         """
-        1) 从 user_id 开始做 BFS，扩散 depth 层，只收集 depth 层之前所有邻居用户
-        2) 对于每一层的邻居用户，收集他们发的“tweets”和（可选）“retweets”
-        3) 最终把所有候选 tweet_id 里 metadata["user_index"] == user_id 的帖子剔除
-        4) 对剩下的 Document 做排序并返回 top_k
+        1) BFS starting from user_id up to 'depth' layers, collecting all neighbor users within that depth
+        2) For each layer's neighbor users, collect their 'tweets' and (optionally) 'retweets'
+        3) Exclude tweets whose original author (metadata['user_index']) equals the caller user_id
+        4) Sort candidates as needed and return top_k (here: simple truncation without scoring)
         """
-        # ——— 步骤 1：BFS 找出各层邻居用户 ——— #
         visited_users = set([user_id])
         current_frontier = {user_id}
-        all_neighbor_users = set()  # 存放所有 1..depth 层的邻居
+        all_neighbor_users = set()
 
         for _ in range(depth):
             next_frontier = set()
-            # 1.1 关注边 (user->follow->user)
+            # (user->follow->user)
             if ('user','follow','user') in self.graph.edge_types:
                 src_f, dst_f = self.graph['user','follow','user'].edge_index
                 for u,v in zip(src_f.tolist(), dst_f.tolist()):
                     if u in current_frontier and v not in visited_users:
                         next_frontier.add(v)
 
-            # 1.2 好友边 (user->friend->user)
+            # (user->friend->user)
             if ('user','friend','user') in self.graph.edge_types:
                 src_fr, dst_fr = self.graph['user','friend','user'].edge_index
                 for u,v in zip(src_fr.tolist(), dst_fr.tolist()):
                     if u in current_frontier and v not in visited_users:
                         next_frontier.add(v)
 
-            # 把这层新找到的用户加到已访问集合里
             visited_users |= next_frontier
-            # 把这层的用户加到 all_neighbor_users（累积）
             all_neighbor_users |= next_frontier
-            # 下一次扩散从这层开始
             current_frontier = next_frontier
-            # 如果没有新的邻居，就提前停止
             if not current_frontier:
                 break
 
-        # ——— 步骤 2：收集邻居用户发的 “tweets” & “retweets” ——— #
+
         candidate_tweet_ids = set()
 
-        # 2.1 收集原帖：user->tweets->tweet
+        # user->tweets->tweet
         if ('user','tweets','tweet') in self.graph.edge_types:
             src_ut, dst_ut = self.graph['user','tweets','tweet'].edge_index
             for u, t in zip(src_ut.tolist(), dst_ut.tolist()):
                 if u in all_neighbor_users:
                     candidate_tweet_ids.add(t)
 
-        # 2.2 收集转推：user->retweets->tweet
+        # user->retweets->tweet
         if self.allow_retweet and ('user','retweets','tweet') in self.graph.edge_types:
             src_urt, dst_urt = self.graph['user','retweets','tweet'].edge_index
             for u, t in zip(src_urt.tolist(), dst_urt.tolist()):
                 if u in all_neighbor_users:
                     candidate_tweet_ids.add(t)
 
-        # ——— 步骤 3：排除掉调用者自己的原帖 ——— #
         filtered_tweet_ids = []
         for t in candidate_tweet_ids:
             doc = self.idx_to_doc.get(t)
@@ -474,13 +460,9 @@ class GraphSocialRetriever:
                 continue
             original_author = int(doc.metadata.get("user_index", -1))
             if original_author == user_id:
-                # 如果原作者是自己，就跳过
                 continue
             filtered_tweet_ids.append(t)
 
-        # ——— 步骤 4：排序并取 top_k —— #
-        # 这里只示例“无特定排序，直接截取前 top_k”
-        # 你可以根据需要自行按时间戳、转推次数、相似度等打分后排序
         top_ids = filtered_tweet_ids[:top_k]
         results = [self.idx_to_doc[t] for t in top_ids if t in self.idx_to_doc]
         return results
@@ -502,21 +484,20 @@ class GraphSocialRetriever:
 @retriever_registry.register("hybrid_graph_vector_retriever_for_social")
 class HybridSocialRetriever(BaseRetriever):
     """
-    混合社交检索器（HybridSocialRetriever）
+    Hybrid social retriever.
 
-    内部维护：
-      - vector_retriever: FAISS 向量检索器实例
-      - graph_retriever: 社交图检索器实例
+    Maintains:
+      - vector_retriever: FAISS vector retriever instance
+      - graph_retriever: social-graph retriever instance
 
-    支持两种独立检索：
-      1) 向量检索（query）
-      2) 图结构检索（user_id）
+    Supports two independent retrieval modes:
+      1) Vector retrieval (query)
+      2) Graph-structure retrieval (user_id)
     """
-    # Pydantic/LLM BaseRetriever 要求的字段声明
     vector_retriever: Any
     graph_retriever: Any
     search_kwargs: Dict[str, Any] = Field(default_factory=dict)  # 默认空 dict
-    search_type: str = "similarity"  # 默认 similarity
+    search_type: str = "similarity"
 
     class Config:
         arbitrary_types_allowed = True
@@ -530,7 +511,7 @@ class HybridSocialRetriever(BaseRetriever):
         super().__init__()
         self.vector_retriever = vector_retriever
         self.graph_retriever  = graph_retriever
-        # 继承底层向量检索配置
+
         self.search_kwargs = getattr(vector_retriever, "search_kwargs", {})
         self.search_type   = getattr(vector_retriever, "search_type", "similarity")
 
@@ -544,17 +525,17 @@ class HybridSocialRetriever(BaseRetriever):
         run_manager=None
     ) -> List[Document]:
         """
-        混合检索：
-        - 若提供 query，则做向量检索，取前 k_vector 条
-        - 若提供 user_id，则做图结构检索，取前 k_graph 条
-        返回合并结果列表。
+        Hybrid retrieval:
+        - If `query` is provided, perform vector retrieval and take top k_vector.
+        - If `user_id` is provided, perform graph retrieval and take top k_graph.
+        Return the merged result list.
         """
         results: List[Document] = []
-        # 向量检索
+
         if query and self.vector_retriever:
             docs = self.vector_retriever.get_relevant_documents(query)
             results.extend(docs[:k_vector])
-        # 图检索
+
         if user_id is not None and self.graph_retriever:
             docs = self.graph_retriever.retrieve_by_user(
                 user_id=user_id, depth=depth, top_k=k_graph
@@ -579,8 +560,8 @@ class HybridSocialRetriever(BaseRetriever):
 @retriever_registry.register("movie_graph_rag_retriever")
 class MovieGraphRAGRetriever:
     """
-    基于电影异构图的纯图检索器。
-    主要负责执行协同过滤等基于图结构的个性化推荐算法。
+    Graph-only retriever over the movie heterogeneous graph.
+    Mainly used for graph-structure-based personalized recommendation (e.g., collaborative filtering).
     """
     def __init__(
         self,
@@ -594,12 +575,10 @@ class MovieGraphRAGRetriever:
         self._nx_graph: Optional[nx.Graph] = None
 
     def _get_nx_graph(self) -> Optional[nx.Graph]:
-        """按需将HeteroData转换为networkx图并缓存，用于算法执行。"""
         if self._nx_graph is None and self.graph_data:
             try:
                 from torch_geometric.utils import to_networkx
                 logger.info("Converting HeteroData to NetworkX for retrieval...")
-                # 只转换用户和电影节点及它们之间的'rated'边
                 graph_subset = self.graph_data['user', 'rated', 'movie']
                 self._nx_graph = to_networkx(graph_subset, edge_attrs=['edge_attr'])
 
@@ -620,7 +599,7 @@ class MovieGraphRAGRetriever:
 
     def retrieve_by_user_id(self, user_id: int, k: int = 5) -> List[Document]:
         """
-        通过协同过滤为用户进行个性化推荐。
+        Personalized recommendation via collaborative filtering.
         """
         graph = self._get_nx_graph()
         if not graph or not user_id:
@@ -661,9 +640,6 @@ class MovieGraphRAGRetriever:
 
 @retriever_registry.register("hybrid_movie_retriever")
 class HybridMovieRetriever(BaseRetriever):
-    """
-    电影混合检索器，结合向量检索和图检索。
-    """
     vector_retriever: BaseRetriever
     graph_retriever: MovieGraphRAGRetriever
     k: int = 10
@@ -675,18 +651,17 @@ class HybridMovieRetriever(BaseRetriever):
         self, query: str, *, run_manager: Any, **kwargs: Any
     ) -> List[Document]:
         
-        user_id = kwargs.get("user_id") # 从 kwargs 中安全地获取 user_id
+        user_id = kwargs.get("user_id")
         
-        # 1. 向量检索路径 (处理内容)
-        # 直接使用 get_relevant_documents，保持与框架一致
+        # 1) Vector-retrieval path (content-based)
         vector_results = self.vector_retriever.get_relevant_documents(query, **kwargs)
         
         graph_results = []
-        # 2. 图检索路径 (处理个性化推荐)
+        2) Graph-retrieval path
         if user_id:
             graph_results = self.graph_retriever.retrieve_by_user_id(user_id=user_id, k=self.k_graph)
 
-        # 3. 合并与去重 (逻辑不变)
+        # 3) Merge and deduplicate
         final_results = []
         seen_ids = set()
 

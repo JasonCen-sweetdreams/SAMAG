@@ -40,7 +40,7 @@ def readinfo(data_dir):
 
 
 def process_array_time(array):
-    """处理最后一列的timestamp"""
+    """Process the last column as a timestamp (convert to date)."""
     for idx,row in enumerate(array):
         timestamp = row[-1]
         time = transfer_time(timestamp)
@@ -55,7 +55,7 @@ def pre_process(movie_array:np.ndarray,
                 cur_time,
                 filter_initial_train = True):
     
-    """返回按照时间排序的movie,以及切分到当前时间步的ratings矩阵"""
+    """Return movies sorted by time and the ratings matrix sliced up to the current timestep."""
     
     movie_array = process_array_time(movie_array)
     users = process_array_time(users)
@@ -113,7 +113,7 @@ class MovieManager(BaseManager):
     
     generated_data_dir: str
     
-    # 核心改动点1: 添加缺失的属性，并移除旧的、重复的属性
+    # add missing attributes and remove old/duplicate ones
     retriever_kargs_update: dict = {}
     movie_graph: Optional[HeteroData] = None
     reviews_index: Optional[Dict[int, List[Dict]]] = None
@@ -292,25 +292,22 @@ class MovieManager(BaseManager):
     # 核心改动点2: 清理重复方法，只保留最新的get_retriever
     def get_retriever(self, **retriever_kargs_update):
         """
-        获取混合检索器。
-        内部包含缓存逻辑，仅在配置变更或首次调用时才重新构建。
+        Get a hybrid retriever.
+        Internally cached: only rebuilds on first call or when configuration changes.
         """
         if self.movie_graph is None:
             logger.info("Knowledge graph not found. Building for the first time...")
-            # 调用与 _update_graph_and_index 相同的逻辑来初始化
             self._update_graph_and_index()
-        # 检查配置是否变化，或者retriever尚未初始化
         if self.retriever is None or self.retriever_kargs_update != retriever_kargs_update:
             logger.info(f"Retriever cache miss or config changed. Rebuilding retriever...\nretriever_kargs_update:{retriever_kargs_update}")
             self.retriever_kargs_update = copy.deepcopy(retriever_kargs_update)
             
-            # vectorstore 的 online/offline 逻辑可以根据参数决定
+            # Vector store online/offline selection can depend on parameters
             online = retriever_kargs_update.get("online", True)
             vectorstore = self.db if online else self.db_cur_movies
             if vectorstore is None:
                 return None
 
-            # 准备构造参数
             retriever_config = self.retriever_kwargs.copy()
             search_kwargs = retriever_config.get("search_kwargs", {})
             k_vector = search_kwargs.get("k_vector", 10)
@@ -320,7 +317,7 @@ class MovieManager(BaseManager):
             
             vector_search_kwargs = search_kwargs.copy()
             vector_search_kwargs['k'] = k_vector
-            # 构建底层检索器
+
             base_vector_retriever = retriever_registry.build(
                 retriever_type,
                 vectorstore=vectorstore,
@@ -334,7 +331,6 @@ class MovieManager(BaseManager):
                 docs_map=self.docs_map
             )
             
-            # 封装为混合检索器并缓存
             self.retriever = retriever_registry.build(
                 "hybrid_movie_retriever",
                 vector_retriever=base_vector_retriever,
@@ -345,16 +341,15 @@ class MovieManager(BaseManager):
 
     def update(self, **kwargs):
         """
-        此方法接收动态参数，并用它来触发 get_retriever 的缓存更新机制。
+        Receive dynamic parameters and forward them to trigger the caching mechanism of get_retriever.
         """
         # online, interested_genres 等参数会在这里被接收并传递
         self.get_retriever(**kwargs)
 
     def get_reviews_tool(self):
         """
-        通过标准流程创建 GetReviewsForMovie 工具。
+        Create the GetReviewsForMovie tool via the standard pipeline.
         """
-        # 调用在 tool/movie.py 中定义的新函数
         tool_func, func_dict = create_get_reviews_tool(
             manager=self,
             name="GetReviewsForMovie",
@@ -445,7 +440,6 @@ Content: {page_content}""")
         try:
             movie_title = movie_rating["movie"]
             
-            # 为了全面搜索，我们应该同时在 online 和 offline 的 retriever 中查找
             online_retriever = self.get_retriever(online=True)
             offline_retriever = self.get_retriever(online=False)
             
@@ -513,14 +507,11 @@ Content: {page_content}""")
         print(f"\nDEBUG INFO --- Manager received {len(ratings)} ratings to update.")
         
         ratings_cur_turn = []
-        new_logs = []  # 用于添加到 self.ratings_log
+        new_logs = []
 
-        # 直接遍历扁平的评分字典列表
         for rating_dict in ratings:
-            # 从字典中获取 agent_id
             agent_id = rating_dict.get("agent_id")
             
-            # 安全检查：如果字典中没有agent_id，则跳过这条记录
             if agent_id is None:
                 print(f"ERROR: Rating dictionary is missing 'agent_id'. Skipping. Data: {rating_dict}")
                 continue
@@ -529,7 +520,6 @@ Content: {page_content}""")
                 timestamp = rating_dict["timestamp"]
                 timestamp = transfer_time(timestamp)
                 
-                # 准备要加入Numpy数组的数据行
                 new_row = [
                     int(agent_id),
                     int(rating_dict["movie_id"]),
@@ -538,11 +528,9 @@ Content: {page_content}""")
                 ]
                 ratings_cur_turn.append(new_row)
                 
-                # 将完整的字典（包含thought）加入log
                 new_logs.append(rating_dict)
 
             except Exception as e:
-                # 捕获其他可能的错误，如缺少'movie_id'或类型转换失败
                 print(f"ERROR: Failed to process rating dictionary. Error: {e}. Data: {rating_dict}")
                 continue
 
@@ -553,8 +541,7 @@ Content: {page_content}""")
 
         ratings_cur_turn_np = np.asarray(ratings_cur_turn)
         
-        # 检查并合并Numpy数组
-        if self.ratings_data.size == 0: # 检查初始数组是否为空
+        if self.ratings_data.size == 0:
             self.ratings_data = ratings_cur_turn_np
         elif self.ratings_data.shape[1] != ratings_cur_turn_np.shape[1]:
             print(f"ERROR: Shape mismatch! Existing shape: {self.ratings_data.shape}, New shape: {ratings_cur_turn_np.shape}. Cannot concatenate.")
@@ -562,7 +549,6 @@ Content: {page_content}""")
         else:
             self.ratings_data = np.concatenate([self.ratings_data, ratings_cur_turn_np])
 
-        # 更新日志和图谱
         self.ratings_log.extend(new_logs)
         self._update_graph_and_index()
         
@@ -573,25 +559,17 @@ Content: {page_content}""")
 
 
     def _update_graph_and_index(self):
-        """
-        辅助函数，用于在评分数据更新后，重建知识图谱和内存中的评论索引。
-        """
         logger.info("Updating knowledge graph and reviews index with new data...")
         
-        # 1. 重建知识图谱
-        # 使用最新的 self.ratings_data 来构建图
         self.movie_graph = build_movie_graph(
             self.watcher_data,
             self.movie_loader.movie_data_array,
             self.ratings_data 
         )
         
-        # 2. 重建评论索引
-        # 使用最新的 self.ratings_log (它包含了thought文本)
         self.reviews_index = defaultdict(list)
         if len(self.ratings_log) > 0:
             for review in self.ratings_log:
-                # 确保review字典中有'movie_id'这个key
                 if 'movie_id' in review:
                     self.reviews_index[review['movie_id']].append(review)
         
@@ -599,8 +577,6 @@ Content: {page_content}""")
         
 
     def get_watcher_rating_infos(self, watcher_id) -> dict: 
-        # count 不同movie的观看频率 以及平均打分
-        # 现在的做法会time_consuming 仅仅在创建的时候进行调用
         
         arr =  self.ratings_data
         ratings_sub = arr[arr[:, 0] == int(watcher_id)]
@@ -631,17 +607,18 @@ Content: {page_content}""")
     
     def form_interest_groups(self, all_agent_ids: List[int], group_size_range:  Tuple[int, int] = (3, 5), top_n_genres: int = 3, group_participation_rate: float = 0.4) -> Tuple[List[List[int]], List[int]]:
         """
-        根据用户的历史高分评分，将品味相似的用户划分到兴趣小组中。
-        :param all_agent_ids: 当前环境中所有用户的ID列表。
-        :param group_size_range: 每个小组的人数范围。
-        :param top_n_genres: 基于多少个最喜欢的类型来匹配。
-        :return: 一个元组，包含(小组列表, 尚未分组的用户ID列表)。
+        Group users with similar tastes into interest groups based on their historical high ratings.
+        :param all_agent_ids: list of all user IDs in the environment.
+        :param group_size_range: min/max size per group.
+        :param top_n_genres: match based on the top-N favorite genres per user.
+        :param group_participation_rate: target fraction of users to be grouped.
+        :return: (list of groups, list of ungrouped user IDs).
         """
         min_size, max_size = group_size_range
         target_grouped_count = int(len(all_agent_ids) * group_participation_rate)
         final_groups = []
         current_grouped_count = 0
-        # 1. 为每个用户计算其最喜欢的Top N电影类型
+
         user_top_genres = {}
         for user_id in all_agent_ids:
             user_ratings = self.ratings_data[self.ratings_data[:, 0] == user_id]
@@ -666,22 +643,21 @@ Content: {page_content}""")
             top_genres = [genre for genre, count in Counter(genre_list).most_common(top_n_genres)]
             user_top_genres[user_id] = tuple(sorted(top_genres))
 
-        # 2. 根据共同的兴趣类型对用户进行分组
         groups_by_preference = defaultdict(list)
         for user_id, genres_tuple in user_top_genres.items():
-            if not genres_tuple: continue # 忽略没有偏好的用户
+            if not genres_tuple: continue
             groups_by_preference[genres_tuple].append(user_id)
         valid_potential_groups = [users for users in groups_by_preference.values() if len(users) >= min_size]
         total_potential_users = sum(len(users) for users in valid_potential_groups)
         if total_potential_users >= target_grouped_count:
             print("--- Mode: Surplus. Randomly selecting from interest groups. ---")
-            random.shuffle(valid_potential_groups) # 随机打乱这些潜在的小组列表
+            random.shuffle(valid_potential_groups)
 
             for users in valid_potential_groups:
                 if current_grouped_count >= target_grouped_count:
                     break
                 
-                random.shuffle(users) # 组内成员也打乱
+                random.shuffle(users)
                 for i in range(0, len(users), max_size):
                     if current_grouped_count >= target_grouped_count:
                         break
@@ -691,10 +667,8 @@ Content: {page_content}""")
                         final_groups.append(chunk)
                         current_grouped_count += len(chunk)
 
-        # 场景二：潜在人数 < 目标人数 (名额不足，需要用随机分组补充)
         else:
             print("--- Mode: Deficit. Taking all interest groups and supplementing with random grouping. ---")
-            # Part A: 先收取所有能形成的兴趣小组
             all_interest_candidates = set()
             for users in valid_potential_groups:
                 all_interest_candidates.update(users)
@@ -705,8 +679,6 @@ Content: {page_content}""")
                         final_groups.append(chunk)
                         current_grouped_count += len(chunk)
             
-            # Part B: 再用随机分组补足剩余名额
-            # 找出所有没有被划入任何有效兴趣小组的用户
             random_candidates = [uid for uid in all_agent_ids if uid not in all_interest_candidates]
             random.shuffle(random_candidates)
 
@@ -719,7 +691,6 @@ Content: {page_content}""")
                     final_groups.append(chunk)
                     current_grouped_count += len(chunk)
 
-        # 4. 汇总
         all_grouped_users = {user for group in final_groups for user in group}
         final_ungrouped_users = []
         for user_id in all_agent_ids:
@@ -801,10 +772,8 @@ Your task is to give a rating score. """
         model_dir = os.path.join(os.path.dirname(self.generated_data_dir),\
             "model")
         
-        # 创建一个空的二部图
         B = nx.Graph()
 
-        # 添加节点，节点可以有属性。这里我们用节点属性'bipartite'标记属于哪个集合
         for watcher_idx in self.watcher_pointer_args["cnt_watcher_ids"]:
             watcher_info = self.watcher_data[watcher_idx]
             watcher_id = watcher_info[0]
@@ -851,8 +820,6 @@ Your task is to give a rating score. """
             except Exception as e:
                 logger.info(f"Exception when saving: {e}\ndata: {row}")
                 continue
-        # 添加边，连接集合0和集合1的节点
-        # B.add_edges_from([('a', 1), ('b', 2), ('c', 3), ('a', 3), ('a', 4), ('b', 4)])
         model_path = os.path.join(model_dir,"graph.graphml")
         if not os.path.exists(os.path.dirname(model_path)):
             os.makedirs(os.path.dirname(model_path))
